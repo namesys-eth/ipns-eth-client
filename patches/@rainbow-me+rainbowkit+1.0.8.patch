@@ -1,0 +1,656 @@
+diff --git a/node_modules/@rainbow-me/rainbowkit/dist/chunk-J4YCI7VT.js b/node_modules/@rainbow-me/rainbowkit/dist/chunk-J4YCI7VT.js
+index c79eeb4..f37abe7 100644
+--- a/node_modules/@rainbow-me/rainbowkit/dist/chunk-J4YCI7VT.js
++++ b/node_modules/@rainbow-me/rainbowkit/dist/chunk-J4YCI7VT.js
+@@ -1064,7 +1064,7 @@ function useWalletConnectors() {
+     try {
+       return await connectWallet(walletId, walletConnectModalConnector);
+     } catch (err) {
+-      const isUserRejection = err.name === "UserRejectedRequestError" || err.message === "Connection request reset. Please try again.";
++      const isUserRejection = err.name === "UserRejectedRequestError" || err.message === "Connection request reset. Please try again";
+       if (!isUserRejection) {
+         throw err;
+       }
+@@ -1417,7 +1417,7 @@ function SignIn({ onClose }) {
+     color: "modalTextSecondary",
+     size: mobile ? "16" : "14",
+     textAlign: "center"
+-  }, "To finish connecting, you must sign a message in your wallet to verify that you are the owner of this account."), status === "idle" && state.errorMessage ? /* @__PURE__ */ React18.createElement(Text, {
++  }, "To finish connecting, you must sign a message in your wallet to verify that you are the owner of this account"), status === "idle" && state.errorMessage ? /* @__PURE__ */ React18.createElement(Text, {
+     color: "error",
+     size: mobile ? "16" : "14",
+     textAlign: "center",
+@@ -1707,7 +1707,7 @@ function abbreviateETHBalance(number) {
+ function formatAddress(address) {
+   const leadingChars = 4;
+   const trailingChars = 4;
+-  return address.length < leadingChars + trailingChars ? address : `${address.substring(0, leadingChars)}\u2026${address.substring(address.length - trailingChars)}`;
++  return address.length < leadingChars + trailingChars ? address : `${address.substring(0, leadingChars)}...${address.substring(address.length - trailingChars)}`;
+ }
+ 
+ // src/components/ConnectButton/formatENS.ts
+@@ -1920,7 +1920,7 @@ function TxList({ address }) {
+   }, /* @__PURE__ */ React30.createElement(Text, {
+     color: "modalTextSecondary",
+     size: mobile ? "16" : "14",
+-    weight: "semibold"
++    weight: "bold"
+   }, "Recent Transactions"), /* @__PURE__ */ React30.createElement(Box, {
+     style: {
+       marginBottom: -6,
+@@ -1943,7 +1943,7 @@ function TxList({ address }) {
+   }, /* @__PURE__ */ React30.createElement(Text, {
+     color: "modalTextSecondary",
+     size: mobile ? "16" : "14",
+-    weight: "semibold"
++    weight: "bold"
+   }, "Clear All"))))), /* @__PURE__ */ React30.createElement(Box, {
+     display: "flex",
+     flexDirection: "column",
+@@ -2035,7 +2035,7 @@ function ProfileDetailsAction({
+   }, icon), /* @__PURE__ */ React31.createElement(Box, null, /* @__PURE__ */ React31.createElement(Text, {
+     color: "modalText",
+     size: mobile ? "12" : "13",
+-    weight: "semibold"
++    weight: "bold"
+   }, label))));
+ }
+ 
+@@ -2109,7 +2109,7 @@ function ProfileDetails({
+   }, /* @__PURE__ */ React32.createElement(Box, {
+     textAlign: "center"
+   }, /* @__PURE__ */ React32.createElement(Text, {
+-    as: "h1",
++    as: "h2",
+     color: "modalText",
+     id: titleId,
+     size: mobile ? "20" : "18",
+@@ -2117,11 +2117,11 @@ function ProfileDetails({
+   }, accountName)), balanceData && /* @__PURE__ */ React32.createElement(Box, {
+     textAlign: "center"
+   }, /* @__PURE__ */ React32.createElement(Text, {
+-    as: "h1",
++    as: "h2",
+     color: "modalTextSecondary",
+     id: titleId,
+     size: mobile ? "16" : "14",
+-    weight: "semibold"
++    weight: "bold"
+   }, displayBalance, " ", balanceData.symbol)))), /* @__PURE__ */ React32.createElement(Box, {
+     display: "flex",
+     flexDirection: "row",
+@@ -2295,8 +2295,8 @@ function ChainModal({ onClose, open }) {
+   }, /* @__PURE__ */ React36.createElement(Text, {
+     color: "modalTextSecondary",
+     size: "14",
+-    weight: "medium"
+-  }, "Wrong network detected, switch or disconnect to continue.")), /* @__PURE__ */ React36.createElement(Box, {
++    weight: "bold"
++  }, "Wrong network detected, switch or disconnect to continue")), /* @__PURE__ */ React36.createElement(Box, {
+     display: "flex",
+     flexDirection: "column",
+     gap: "4",
+@@ -2346,7 +2346,7 @@ function ChainModal({ onClose, open }) {
+     }, /* @__PURE__ */ React36.createElement(Text, {
+       color: "accentColorForeground",
+       size: "14",
+-      weight: "medium"
++      weight: "bold"
+     }, "Connected"), /* @__PURE__ */ React36.createElement(Box, {
+       background: "connectionIndicator",
+       borderColor: "selectedOptionBorder",
+@@ -2364,7 +2364,7 @@ function ChainModal({ onClose, open }) {
+     }, /* @__PURE__ */ React36.createElement(Text, {
+       color: "modalText",
+       size: "14",
+-      weight: "medium"
++      weight: "bold"
+     }, "Confirm in Wallet"), /* @__PURE__ */ React36.createElement(Box, {
+       background: "standby",
+       borderRadius: "full",
+@@ -2384,8 +2384,10 @@ function ChainModal({ onClose, open }) {
+   }, /* @__PURE__ */ React36.createElement(Text, {
+     color: "modalText",
+     size: "14",
+-    weight: "medium"
+-  }, "Your wallet does not support switching networks from", " ", appName != null ? appName : "this app", ". Try switching networks from within your wallet instead.")), unsupportedChain && /* @__PURE__ */ React36.createElement(React36.Fragment, null, /* @__PURE__ */ React36.createElement(Box, {
++    weight: "bold",
++    font: "SF Mono",
++    fontFamily: "SF Mono"
++  }, "Your wallet does not support switching networks from this app. Try switching networks from within your wallet instead")), unsupportedChain && /* @__PURE__ */ React36.createElement(React36.Fragment, null, /* @__PURE__ */ React36.createElement(Box, {
+     background: "generalBorderDim",
+     height: "1",
+     marginX: "8"
+@@ -2468,7 +2470,7 @@ var DisclaimerText = ({ children }) => {
+   return /* @__PURE__ */ React38.createElement(Text, {
+     color: "modalTextSecondary",
+     size: "12",
+-    weight: "medium"
++    weight: "bold"
+   }, children);
+ };
+ 
+@@ -2489,9 +2491,9 @@ function ConnectModalIntro({
+     marginBottom: "10"
+   }, !compactModeEnabled && /* @__PURE__ */ React39.createElement(Text, {
+     color: "modalText",
+-    size: "18",
++    size: "23",
+     weight: "heavy"
+-  }, "What is a Wallet?")), /* @__PURE__ */ React39.createElement(Box, {
++  }, "NameSys")), /* @__PURE__ */ React39.createElement(Box, {
+     display: "flex",
+     flexDirection: "column",
+     gap: "32",
+@@ -2514,13 +2516,13 @@ function ConnectModalIntro({
+     gap: "4"
+   }, /* @__PURE__ */ React39.createElement(Text, {
+     color: "modalText",
+-    size: "14",
++    size: "16",
+     weight: "bold"
+-  }, "A Home for your Digital Assets"), /* @__PURE__ */ React39.createElement(Text, {
++  }, "ENS Off-Chain Records Manager"), /* @__PURE__ */ React39.createElement(Text, {
+     color: "modalTextSecondary",
+-    size: "14",
+-    weight: "medium"
+-  }, "Wallets are used to send, receive, store, and display digital assets like Ethereum and NFTs."))), /* @__PURE__ */ React39.createElement(Box, {
++    size: "12",
++    weight: "bold"
++  }, "Set your Records on Secure and Decentralised IPFS storage"))), /* @__PURE__ */ React39.createElement(Box, {
+     alignItems: "center",
+     display: "flex",
+     flexDirection: "row",
+@@ -2536,13 +2538,13 @@ function ConnectModalIntro({
+     gap: "4"
+   }, /* @__PURE__ */ React39.createElement(Text, {
+     color: "modalText",
+-    size: "14",
++    size: "16",
+     weight: "bold"
+-  }, "A New Way to Log In"), /* @__PURE__ */ React39.createElement(Text, {
++  }, "No More Gas Fees"), /* @__PURE__ */ React39.createElement(Text, {
+     color: "modalTextSecondary",
+-    size: "14",
+-    weight: "medium"
+-  }, "Instead of creating new accounts and passwords on every website, just connect your wallet.")))), /* @__PURE__ */ React39.createElement(Box, {
++    size: "12",
++    weight: "bold"
++  }, "Set your ENS Records for Free without worrying about Gas")))), /* @__PURE__ */ React39.createElement(Box, {
+     alignItems: "center",
+     display: "flex",
+     flexDirection: "column",
+@@ -2858,7 +2860,7 @@ var ModalSelection = ({
+     color: currentlySelected ? "accentColorForeground" : "accentColor",
+     size: "12",
+     style: { lineHeight: 1, marginTop: -1 },
+-    weight: "medium"
++    weight: "bold"
+   }, "Recent"))))));
+ };
+ ModalSelection.displayName = "ModalSelection";
+@@ -3136,12 +3138,12 @@ function GetDetail({
+       gap: "2"
+     }, /* @__PURE__ */ React48.createElement(Text, {
+       color: "modalText",
+-      size: "14",
++      size: "16",
+       weight: "bold"
+     }, name), /* @__PURE__ */ React48.createElement(Text, {
+       color: "modalTextSecondary",
+-      size: "14",
+-      weight: "medium"
++      size: "12",
++      weight: "bold"
+     }, hasMobileAndExtension ? "Mobile Wallet and Extension" : hasMobileCompanionApp ? "Mobile Wallet" : hasExtension ? "Browser Extension" : null))), /* @__PURE__ */ React48.createElement(Box, {
+       display: "flex",
+       flexDirection: "column",
+@@ -3167,9 +3169,9 @@ function GetDetail({
+     weight: "bold"
+   }, "Not what you\u2019re looking for?"), /* @__PURE__ */ React48.createElement(Text, {
+     color: "modalTextSecondary",
+-    size: "14",
+-    weight: "medium"
+-  }, "Select a wallet on the left to get started with a different wallet provider.")));
++    size: "12",
++    weight: "bold"
++  }, "Select a wallet on the left to get started with a different wallet provider")));
+ }
+ var LOGO_SIZE = "44";
+ function ConnectDetail({
+@@ -3197,14 +3199,14 @@ function ConnectDetail({
+   const hasQrCodeAndExtension = (downloadUrls == null ? void 0 : downloadUrls.qrCode) && hasExtension;
+   const hasQrCode = qrCode && qrCodeUri;
+   const secondaryAction = showWalletConnectModal ? {
+-    description: `Need the ${compactModeEnabled ? "" : "official"} WalletConnect modal?`,
++    description: `Open WalletConnect modal`,
+     label: "OPEN",
+     onClick: () => {
+       onClose();
+       showWalletConnectModal();
+     }
+   } : hasQrCode ? {
+-    description: `Don\u2019t have ${name}?`,
++    description: `Get the ${name} app`,
+     label: "GET",
+     onClick: () => changeWalletStep(hasQrCodeAndExtension ? "DOWNLOAD_OPTIONS" /* DownloadOptions */ : "DOWNLOAD" /* Download */)
+   } : null;
+@@ -3273,7 +3275,7 @@ function ConnectDetail({
+     color: "modalTextSecondary",
+     size: "14",
+     textAlign: "center",
+-    weight: "medium"
++    weight: "bold"
+   }, "Confirm connection in the extension")), /* @__PURE__ */ React48.createElement(Box, {
+     alignItems: "center",
+     color: "modalText",
+@@ -3301,9 +3303,9 @@ function ConnectDetail({
+     justifyContent: "space-between",
+     marginTop: "12"
+   }, ready && secondaryAction && /* @__PURE__ */ React48.createElement(React48.Fragment, null, /* @__PURE__ */ React48.createElement(Text, {
+-    color: "modalTextSecondary",
+     size: "14",
+-    weight: "medium"
++    weight: "bold",
++    color: "modalText"
+   }, secondaryAction.description), /* @__PURE__ */ React48.createElement(ActionButton, {
+     label: secondaryAction.label,
+     onClick: secondaryAction.onClick,
+@@ -3454,7 +3456,7 @@ var DownloadOptionsBox = ({
+   }, title), /* @__PURE__ */ React48.createElement(Text, {
+     color: "modalTextSecondary",
+     size: "14",
+-    weight: "medium"
++    weight: "bold"
+   }, description), /* @__PURE__ */ React48.createElement(Box, {
+     marginTop: "14",
+     width: "max"
+@@ -3497,7 +3499,7 @@ function DownloadOptionsDetail({
+     width: "full"
+   }, extensionDownloadUrl && /* @__PURE__ */ React48.createElement(DownloadOptionsBox, {
+     actionLabel: `Add to ${browser}`,
+-    description: "Access your wallet right from your favorite web browser.",
++    description: "Access your wallet right from your favorite web browser",
+     iconUrl: getBrowserSrc,
+     isCompact,
+     onAction: () => changeWalletStep((extension == null ? void 0 : extension.instructions) ? "INSTRUCTIONS_EXTENSION" /* InstructionsExtension */ : "CONNECT" /* Connect */),
+@@ -3506,7 +3508,7 @@ function DownloadOptionsDetail({
+     variant: "browser"
+   }), mobileDownloadUrl && /* @__PURE__ */ React48.createElement(DownloadOptionsBox, {
+     actionLabel: "Get the app",
+-    description: "Use the mobile wallet to explore the world of Ethereum.",
++    description: "Use the mobile wallet to explore the world of Ethereum",
+     iconAccent: wallet.iconAccent,
+     iconBackground: wallet.iconBackground,
+     iconUrl: wallet.iconUrl,
+@@ -3539,7 +3541,7 @@ function DownloadDetail({
+   }, /* @__PURE__ */ React48.createElement(Text, {
+     color: "modalTextSecondary",
+     size: "14",
+-    weight: "semibold"
++    weight: "bold"
+   }, "Scan with your phone to download on iOS or Android")), /* @__PURE__ */ React48.createElement(Box, {
+     height: "full"
+   }, (downloadUrls == null ? void 0 : downloadUrls.qrCode) ? /* @__PURE__ */ React48.createElement(QRCode, {
+@@ -3614,12 +3616,12 @@ function InstructionMobileDetail({
+       gap: "4"
+     }, /* @__PURE__ */ React48.createElement(Text, {
+       color: "modalText",
+-      size: "14",
++      size: "16",
+       weight: "bold"
+     }, d.title), /* @__PURE__ */ React48.createElement(Text, {
+       color: "modalTextSecondary",
+       size: "14",
+-      weight: "medium"
++      weight: "bold"
+     }, d.description)));
+   })), /* @__PURE__ */ React48.createElement(Box, {
+     alignItems: "center",
+@@ -3687,12 +3689,12 @@ function InstructionExtensionDetail({
+       gap: "4"
+     }, /* @__PURE__ */ React48.createElement(Text, {
+       color: "modalText",
+-      size: "14",
++      size: "16",
+       weight: "bold"
+     }, d.title), /* @__PURE__ */ React48.createElement(Text, {
+       color: "modalTextSecondary",
+       size: "14",
+-      weight: "medium"
++      weight: "bold"
+     }, d.description)));
+   })), /* @__PURE__ */ React48.createElement(Box, {
+     alignItems: "center",
+@@ -3862,7 +3864,7 @@ function DesktopOptions({ onClose }) {
+         reconnect: connectToWallet,
+         wallet: selectedWallet
+       });
+-      headerLabel = hasQrCode && `Scan with ${selectedWallet.name === "WalletConnect" ? "your phone" : selectedWallet.name}`;
++      headerLabel = hasQrCode && `Scan with ${selectedWallet.id === "walletConnect" ? "your phone" : selectedWallet.name}`;
+       headerBackButtonLink = compactModeEnabled ? "NONE" /* None */ : null;
+       headerBackButtonCallback = compactModeEnabled ? clearSelectedWallet : () => {
+       };
+@@ -3930,7 +3932,7 @@ function DesktopOptions({ onClose }) {
+     as: "h1",
+     color: "modalText",
+     id: titleId,
+-    size: "18",
++    size: "16",
+     weight: "heavy"
+   }, "Connect a Wallet")), compactModeEnabled && /* @__PURE__ */ React49.createElement(Box, {
+     marginRight: "16"
+@@ -3987,7 +3989,7 @@ function DesktopOptions({ onClose }) {
+   }, /* @__PURE__ */ React49.createElement(Text, {
+     color: "modalTextSecondary",
+     size: "14",
+-    weight: "medium"
++    weight: "bold"
+   }, "New to Ethereum wallets?")), /* @__PURE__ */ React49.createElement(Box, {
+     alignItems: "center",
+     display: "flex",
+@@ -4050,7 +4052,7 @@ function DesktopOptions({ onClose }) {
+     style: { flexGrow: 1 }
+   }, headerLabel && /* @__PURE__ */ React49.createElement(Text, {
+     color: "modalText",
+-    size: "18",
++    size: "16",
+     textAlign: "center",
+     weight: "heavy"
+   }, headerLabel)), /* @__PURE__ */ React49.createElement(CloseButton, {
+@@ -4155,14 +4157,14 @@ function WalletButton({
+     as: "h2",
+     color: wallet.ready ? "modalText" : "modalTextSecondary",
+     size: "13",
+-    weight: "medium"
++    weight: "bold"
+   }, /* @__PURE__ */ React50.createElement(Box, {
+     as: "span",
+     position: "relative"
+   }, shortName != null ? shortName : name, !wallet.ready && " (unsupported)")), wallet.recent && /* @__PURE__ */ React50.createElement(Text, {
+     color: "accentColor",
+     size: "12",
+-    weight: "medium"
++    weight: "bold"
+   }, "Recent"))));
+ }
+ function MobileOptions({ onClose }) {
+@@ -4218,12 +4220,13 @@ function MobileOptions({ onClose }) {
+         textAlign: "center"
+       }, /* @__PURE__ */ React50.createElement(Text, {
+         color: "modalText",
+-        size: "16",
++        size: "23",
+         weight: "bold"
+-      }, "What is a Wallet?"), /* @__PURE__ */ React50.createElement(Text, {
++      }, "NameSys"), /* @__PURE__ */ React50.createElement(Text, {
+         color: "modalTextSecondary",
+-        size: "16"
+-      }, "A wallet is used to send, receive, store, and display digital assets. It\u2019s also a new way to log in, without needing to create new accounts and passwords on\xA0every\xA0website."))), /* @__PURE__ */ React50.createElement(Box, {
++        size: "18",
++        weight: "bold"
++      }, "ENS Off-Chain Records Manager"))), /* @__PURE__ */ React50.createElement(Box, {
+         paddingTop: "32",
+         paddingX: "20"
+       }, /* @__PURE__ */ React50.createElement(Box, {
+@@ -4233,12 +4236,12 @@ function MobileOptions({ onClose }) {
+       }, /* @__PURE__ */ React50.createElement(ActionButton, {
+         label: "Get a Wallet",
+         onClick: () => setWalletStep("GET" /* Get */),
+-        size: "large",
++        size: "medium",
+         type: "secondary"
+       }), /* @__PURE__ */ React50.createElement(ActionButton, {
+         href: learnMoreUrl,
+         label: "Learn More",
+-        size: "large",
++        size: "medium",
+         type: "secondary"
+       }))), Disclaimer && /* @__PURE__ */ React50.createElement(Box, {
+         marginTop: "28",
+@@ -4331,8 +4334,9 @@ function MobileOptions({ onClose }) {
+         weight: "bold"
+       }, "Not what you\u2019re looking for?"), /* @__PURE__ */ React50.createElement(Text, {
+         color: "modalTextSecondary",
+-        size: "16"
+-      }, "Select a wallet on the main screen to get started with a different wallet provider."))));
++        size: "14",
++        weight: "bold"
++      }, "Select a wallet on the main screen to get started with a different wallet provider"))));
+       break;
+     }
+   }
+@@ -4384,7 +4388,7 @@ function MobileOptions({ onClose }) {
+     as: "h1",
+     color: "modalText",
+     id: titleId,
+-    size: "20",
++    size: "16",
+     weight: "bold"
+   }, headerLabel)), /* @__PURE__ */ React50.createElement(Box, {
+     alignItems: "center",
+@@ -4664,7 +4668,8 @@ function ConnectButton({
+       alignItems: "center",
+       display: "flex",
+       height: "24",
+-      paddingX: "4"
++      paddingX: "4",
++      fontFamily: "body"
+     }, "Wrong network") : /* @__PURE__ */ React55.createElement(Box, {
+       alignItems: "center",
+       display: "flex",
+@@ -4754,7 +4759,8 @@ function ConnectButton({
+       paddingX: "14",
+       testId: "connect-button",
+       transition: "default",
+-      type: "button"
++      type: "button",
++      fontSize: 16,
+     }, label));
+   });
+ }
+diff --git a/node_modules/@rainbow-me/rainbowkit/dist/components/index.css b/node_modules/@rainbow-me/rainbowkit/dist/components/index.css
+index ce7f8e3..906dc3d 100644
+--- a/node_modules/@rainbow-me/rainbowkit/dist/components/index.css
++++ b/node_modules/@rainbow-me/rainbowkit/dist/components/index.css
+@@ -76,9 +76,17 @@
+ }
+ [data-rk] .ju367v6 {
+   display: none;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367v8 {
+   display: block;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367va {
+   display: flex;
+@@ -749,6 +757,10 @@
+ }
+ [data-rk] .ju367v6f {
+   padding-bottom: 8px;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367v6g {
+   padding-bottom: 10px;
+@@ -818,6 +830,10 @@
+ }
+ [data-rk] .ju367v72 {
+   padding-left: 12px;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367v73 {
+   padding-left: 14px;
+@@ -875,6 +891,10 @@
+ }
+ [data-rk] .ju367v7l {
+   padding-right: 8px;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367v7m {
+   padding-right: 10px;
+@@ -920,6 +940,10 @@
+ }
+ [data-rk] .ju367v80 {
+   padding-top: 1px;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367v81 {
+   padding-top: 2px;
+@@ -938,6 +962,10 @@
+ }
+ [data-rk] .ju367v86 {
+   padding-top: 8px;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367v87 {
+   padding-top: 10px;
+@@ -986,6 +1014,7 @@
+ }
+ [data-rk] .ju367v8m {
+   position: relative;
++  font-family: 'Spotnik';
+ }
+ [data-rk] .ju367v8n {
+   right: 0;
+@@ -1945,6 +1974,10 @@
+   }
+   [data-rk] .ju367v9 {
+     display: block;
++    font-family: 'SF Mono';
++    font-weight: 600;
++    letter-spacing: -0.0px;
++    font-size: 18px;
+   }
+   [data-rk] .ju367vb {
+     display: flex;
+diff --git a/node_modules/@rainbow-me/rainbowkit/dist/index.css b/node_modules/@rainbow-me/rainbowkit/dist/index.css
+index ce7f8e3..906dc3d 100644
+--- a/node_modules/@rainbow-me/rainbowkit/dist/index.css
++++ b/node_modules/@rainbow-me/rainbowkit/dist/index.css
+@@ -76,9 +76,17 @@
+ }
+ [data-rk] .ju367v6 {
+   display: none;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367v8 {
+   display: block;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367va {
+   display: flex;
+@@ -749,6 +757,10 @@
+ }
+ [data-rk] .ju367v6f {
+   padding-bottom: 8px;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367v6g {
+   padding-bottom: 10px;
+@@ -818,6 +830,10 @@
+ }
+ [data-rk] .ju367v72 {
+   padding-left: 12px;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367v73 {
+   padding-left: 14px;
+@@ -875,6 +891,10 @@
+ }
+ [data-rk] .ju367v7l {
+   padding-right: 8px;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367v7m {
+   padding-right: 10px;
+@@ -920,6 +940,10 @@
+ }
+ [data-rk] .ju367v80 {
+   padding-top: 1px;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367v81 {
+   padding-top: 2px;
+@@ -938,6 +962,10 @@
+ }
+ [data-rk] .ju367v86 {
+   padding-top: 8px;
++  font-family: 'SF Mono';
++  font-weight: 600;
++  letter-spacing: -0.0px;
++  font-size: 18px;
+ }
+ [data-rk] .ju367v87 {
+   padding-top: 10px;
+@@ -986,6 +1014,7 @@
+ }
+ [data-rk] .ju367v8m {
+   position: relative;
++  font-family: 'Spotnik';
+ }
+ [data-rk] .ju367v8n {
+   right: 0;
+@@ -1945,6 +1974,10 @@
+   }
+   [data-rk] .ju367v9 {
+     display: block;
++    font-family: 'SF Mono';
++    font-weight: 600;
++    letter-spacing: -0.0px;
++    font-size: 18px;
+   }
+   [data-rk] .ju367vb {
+     display: flex;
+diff --git a/node_modules/@rainbow-me/rainbowkit/dist/index.js b/node_modules/@rainbow-me/rainbowkit/dist/index.js
+index 54953d0..cc0a649 100644
+--- a/node_modules/@rainbow-me/rainbowkit/dist/index.js
++++ b/node_modules/@rainbow-me/rainbowkit/dist/index.js
+@@ -582,7 +582,7 @@ var walletConnectWallet = ({
+   version = "2"
+ }) => ({
+   id: "walletConnect",
+-  name: "WalletConnect",
++  name: "Wallet Connect",
+   iconUrl: async () => (await import("./walletConnectWallet-D6ZADJM7.js")).default,
+   iconBackground: "#3b99fc",
+   createConnector: () => {
