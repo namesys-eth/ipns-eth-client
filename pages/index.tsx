@@ -302,15 +302,15 @@ export default function Home() {
   }, [write, meta])
 
   return (
-    <div>
+    <>
       <Head>
-        <title>IPNS-ETH Service</title>
+        <title>NameSys IPNS Pinning Service</title>
         <meta name="viewport" content="initial-scale=1.0, width=device-width" />
       </Head>
       <main className='flex-column'>
         <div style={{ fontFamily: 'SF Mono' }}></div>
         <div style={{ fontFamily: 'Spotnik' }}></div>
-        <div style={{ marginTop: '7.5%' }}></div>
+        <div style={{ marginTop: mobile ? '23.5%' : '7.5%' }}></div>
         {/* HOME */}
         {!user && (
           <div className='flex-column'>
@@ -318,12 +318,11 @@ export default function Home() {
               <img
                 alt='logo'
                 src='logo.png'
-                width={'100px'}
+                width={mobile ? '220px' : '350px'}
                 style={{ marginBottom: '-10px' }}
               />
               <div className='flex-column'>
                 <h1 style={{ color: '#ff2600' }}>
-                  IPNS-ETH
                 </h1>
                 <h4 style={{ color: '#fc4e14', marginTop: '-20px' }}>
                   Keyless Pinning Service
@@ -331,8 +330,8 @@ export default function Home() {
               </div>
             </div>
             <div
-              className='emphasis'
-              style={{ margin: '60px 0 60px 0' }}
+              className={mobile ? 'emphasis' : 'emphasis-large'}
+              style={{ margin: mobile ? '60px 0 60px 0' : '90px 0 120px 0' }}
             >
               <ConnectButton
                 label='Login ♦'
@@ -411,7 +410,7 @@ export default function Home() {
                   <span
                     style={{
                       color: '#fc6603',
-                      fontSize: '20px',
+                      fontSize: '24px',
                       fontWeight: '700'
                     }}
                   >
@@ -449,16 +448,15 @@ export default function Home() {
                   <img
                     alt='logo'
                     src='logo.png'
-                    width={'50px'}
+                    width={'175px'}
                     style={{ marginBottom: '-15px' }}
                   />
                   <div className='flex-column' style={{ marginTop: !mobile ? '-1%' : '-2%' }}>
                     <h4 style={{ color: '#ff2600' }}>
-                      IPNS-ETH
                     </h4>
-                    <h6 style={{ color: '#fc4e14', marginTop: '-25px' }}>
+                    <h4 style={{ color: '#fc4e14', marginTop: '-25px' }}>
                       Keyless Pinning Service
-                    </h6>
+                    </h4>
                   </div>
                 </div>
                 <div className={!mobile ? 'flex-column-sans-align' : 'flex-column'} style={{ margin: '10px 0 0 0' }}>
@@ -619,6 +617,6 @@ export default function Home() {
           </div>
         )}
       </main>
-    </div>
+    </>
   )
 }

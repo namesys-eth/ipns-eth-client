@@ -1576,6 +1576,38 @@ button:not(:disabled),
   }
 }
 
+.emphasis-large {
+  animation: blink-guide-2 5s linear infinite;
+}
+
+.emphasis-large:hover {
+  animation: none;
+  transform: scale(2.0);
+}
+
+@keyframes blink-guide-2 {
+
+  0%,
+  100% {
+    opacity: 1;
+    filter: brightness(1.5);
+    transform: scale(2.0);
+  }
+
+  25%,
+  75% {
+    opacity: 0.95;
+    filter: brightness(1.25);
+    transform: scale(1.75);
+  }
+
+  50% {
+    opacity: 0.90;
+    filter: brightness(1.0);
+    transform: scale(1.5);
+  }
+}
+
 .blink {
   animation: blinker 3s linear infinite;
 }

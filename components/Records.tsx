@@ -8,11 +8,9 @@ import {
   useAccount
 } from 'wagmi'
 
-export interface Record extends constants.recordType { }
-
 interface RecordsContainerProps {
   meta: any
-  records: Record[]
+  records: any[]
   hue: string
   handleModalData: (data: string) => void
   handleTrigger: (data: boolean) => void
@@ -29,7 +27,7 @@ const Records: React.FC<RecordsContainerProps> = ({ meta, records, hue, handleMo
 
   // Whether connector is authorised to write
   function unauthorised() {
-    return !_Wallet_ || (!meta.wrapped && _Wallet_ !== meta.owner) || (meta.wrapped && _Wallet_ !== meta.manager) || meta.resolver !== constants.ccip2[meta.chainId === 5 ? 0 : 1]
+    return !_Wallet_
   }
 
   // Gets live value of update
@@ -105,8 +103,8 @@ const Records: React.FC<RecordsContainerProps> = ({ meta, records, hue, handleMo
         </button>
       </div>
       <div className={!mobile ? styles.grid : 'flex-column'}>
-        {records.map((record) => (
-          <div key={record.path}
+        {records.map((record, index) => (
+          <div key={index}
             className={!mobile ? styles.arrange : 'flex-column'}
             style={{
               marginTop: !mobile ? '0' : '10px'
