@@ -3,7 +3,7 @@
 
 @font-face {
   font-family: 'SF Mono';
-  src: url('../assets/SF-Mono.woff2') format('woff2');
+  src: url('../public/fonts/SF-Mono.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
   margin: 0;
@@ -12,7 +12,7 @@
 
 @font-face {
   font-family: 'Bioliquid';
-  src: url('../assets/Bioliquid.woff2') format('woff2');
+  src: url('../public/fonts/Bioliquid.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
   margin: 0;
@@ -21,7 +21,7 @@
 
 @font-face {
   font-family: 'Spotnik';
-  src: url('../assets/Spotnik.woff2') format('woff2');
+  src: url('../public/fonts/Spotnik.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
   margin: 0;
