@@ -1,7 +1,7 @@
 {
   "name": "ipns-eth-client",
   "version": "0.1-alpha",
-  "homepage": "https://pin.namesys.xyz",
+  "homepage": "https://ipns.eth.limo",
   "description": "Keyless IPNS Pinning Service",
   "private": true,
   "scripts": {
