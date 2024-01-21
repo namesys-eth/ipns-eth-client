@@ -7,38 +7,30 @@ import { ethers } from "ethers";
 import * as constants from "../utils/constants";
 import { isMobile } from "react-device-detect";
 import Loading from "../components/LoadingColors";
-import { KEYGEN } from "../utils/keygen";
 import Records from "../components/Records";
-import Salt from "../components/Salt";
 import Success from "../components/Success";
 import Error from "../components/Error";
 import { useWindowDimensions } from "../hooks/useWindowDimensions";
-import { useAccount, useSignMessage } from "wagmi";
-import Web3 from "web3";
+import { useAccount } from "wagmi";
 import "./index.css";
 
 export default function Home() {
   const { width, height } = useWindowDimensions(); // Get window dimensions
   const [mobile, setMobile] = React.useState(false); // Set mobile or dekstop environment
   const [write, setWrite] = React.useState(false); // Sets write flag
-  const [sigCount, setSigCount] = React.useState(0); // Set signature count
   const [color, setColor] = React.useState("lime"); // Set color
   const [crash, setCrash] = React.useState(false); // Set crash status
   const [user, setUser] = React.useState(""); // Sets connected user
   const [success, setSuccess] = React.useState(""); // Sets success text for the Success modal
-  const [saltModal, setSaltModal] = React.useState(false); // Salt (password/key-identifier)
   const [successModal, setSuccessModal] = React.useState(false); // Success modal trigger
   const [message, setMessage] = React.useState("Loading"); // Set message to display
   const [records, setRecords] = React.useState(constants.records); // Set records
   const [meta, setMeta] = React.useState(constants.meta); // Set ENS metadata
   const [loading, setLoading] = React.useState(true); // Loading Records marker
-  const [keypair, setKeypair] = React.useState<[string, string]>(["", ""]); // Sets generated K_IPNS keys
   const [recordsState, setRecordsState] =
     React.useState<constants.MainBodyState>(constants.modalTemplate); // Records body state
-  const [saltModalState, setSaltModalState] =
-    React.useState<constants.MainSaltState>(constants.modalSaltTemplate); // Salt modal state
   const [successModalState, setSuccessModalState] =
-    React.useState<constants.MainSaltState>(constants.modalSaltTemplate);
+    React.useState<constants.MainSuccessState>(constants.modalSuccessTemplate);
   // Variables
   const chain = process.env.NEXT_PUBLIC_NETWORK === "mainnet" ? "1" : "5";
   const { address: _Wallet_ } = useAccount();
@@ -49,10 +41,7 @@ export default function Home() {
   const network = chain === "1" ? "mainnet" : "goerli";
   const provider = new ethers.AlchemyProvider(network, apiKey);
   const alchemyEndpoint = `https://eth-${network}.g.alchemy.com/v2/` + apiKey;
-  const web3 = new Web3(alchemyEndpoint);
-  const recoveredAddress = React.useRef<string>();
-  const caip10 = `eip155:${chain}:${_Wallet_}`; // CAIP-10
-  const origin = `eth:${_Wallet_ || constants.zeroAddress}`;
+
   const PORT = process.env.NEXT_PUBLIC_PORT;
   const SERVER = process.env.NEXT_PUBLIC_SERVER;
 
@@ -64,14 +53,7 @@ export default function Home() {
   const handleRecordsTrigger = (trigger: boolean) => {
     setRecordsState((prevState) => ({ ...prevState, trigger: trigger }));
   };
-  // Handle Salt modal data return
-  const handleSaltModalData = (data: string | undefined) => {
-    setSaltModalState((prevState) => ({ ...prevState, modalData: data }));
-  };
-  // Handle Salt modal trigger
-  const handleSaltTrigger = (trigger: boolean) => {
-    setSaltModalState((prevState) => ({ ...prevState, trigger: trigger }));
-  };
+
   // Handle Success modal data return
   const handleSuccessModalData = (data: string | undefined) => {
     setSuccessModalState((prevState) => ({ ...prevState, modalData: data }));
@@ -91,6 +73,30 @@ export default function Home() {
       }
     }
     return nonEmptyNewCount;
+  }
+
+  // Get Avatar
+  async function getAvatar(wallet: any) {
+    const _meta = { ...meta };
+    try {
+      const _ENS = await provider.lookupAddress(String(wallet));
+      const _avatar = _ENS ? await provider.getAvatar(_ENS) : null;
+      if (_avatar || _ENS) {
+        _meta.user = String(wallet);
+        _meta.avatar = _avatar || "";
+        _meta.ens = _ENS || "";
+        setMeta(_meta);
+        return _avatar;
+      } else {
+        _meta.user = String(wallet);
+        setMeta(_meta);
+        return "";
+      }
+    } catch (error) {
+      _meta.user = String(wallet);
+      setMeta(_meta);
+      return "";
+    }
   }
 
   // Function for writing IPNS Revision metadata to NameSys backend; needed for updates
@@ -159,61 +165,12 @@ export default function Home() {
   React.useEffect(() => {
     if (_Wallet_ && String(_Wallet_) !== constants.zeroAddress) {
       setUser(_Wallet_);
+      getAvatar(_Wallet_);
     } else {
       setUser("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [_Wallet_]);
-
-  // Signature S_IPNS statement; S_IPNS(K_WALLET) [IPNS Keygen]
-  // S_IPNS is not recovered on-chain; no need for buffer prepend and hashing of message required to sign
-  function statementIPNSKey(extradata: string) {
-    let _toSign = `Requesting Signature To Generate IPNS Key\n\nOrigin: ${origin}\nKey Type: ed25519\nExtradata: ${extradata}\nSigned By: ${caip10}`;
-    let _digest = _toSign;
-    return _digest;
-  }
-
-  // Wagmi Signature hook
-  const {
-    data: signature,
-    error: signError,
-    isLoading: signLoading,
-    signMessage,
-  } = useSignMessage({
-    onSuccess(data, variables) {
-      const address = ethers.verifyMessage(variables.message, data);
-      recoveredAddress.current = address;
-    },
-  });
-
-  // Trigger Signer generation
-  React.useEffect(() => {
-    if (saltModalState.trigger) {
-      setSigCount(1);
-      const SIGN_SIGNER = async () => {
-        signMessage({
-          message: statementIPNSKey(
-            ethers.keccak256(
-              ethers.solidityPacked(
-                ["bytes32", "address"],
-                [
-                  ethers.keccak256(
-                    ethers.solidityPacked(
-                      ["string"],
-                      [saltModalState.modalData]
-                    )
-                  ),
-                  _Wallet_,
-                ]
-              )
-            )
-          ),
-        });
-      };
-      SIGN_SIGNER();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saltModalState]);
 
   // Set Records to write
   React.useEffect(() => {
@@ -224,49 +181,9 @@ export default function Home() {
         _records[_allRecords[i].id] = _allRecords[i];
       }
       setRecords(_records);
-      setSaltModal(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recordsState]);
-
-  // Sets signature from Wagmi signMessage() as S_IPNS(K_WALLET)
-  React.useEffect(() => {
-    if (signature) {
-      if (sigCount === 1 && !keypair[0]) {
-        setMessage("Generating Signer");
-        const keygen = async () => {
-          const _origin = `eth:${_Wallet_ || constants.zeroAddress}`;
-          const __keypair = await KEYGEN(
-            _origin,
-            caip10,
-            signature,
-            saltModalState.modalData
-          );
-          setKeypair(__keypair);
-          setMessage("Signer Generated");
-        };
-        keygen();
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature, sigCount, keypair]);
-
-  // Sets signature status
-  React.useEffect(() => {
-    if (signLoading) {
-      setLoading(true);
-      setMessage(
-        sigCount === 1
-          ? "Waiting for Signer Signature"
-          : "Waiting for Approval Signature"
-      );
-    }
-    if (signError) {
-      setMessage("Signature Failed");
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signLoading, signError, sigCount]);
 
   /* HANDLE WRITING RECORDS */
   // Handles writing records to the NameSys backend
@@ -443,22 +360,6 @@ export default function Home() {
                     {message}
                   </span>
                 </div>
-                <div
-                  style={{
-                    marginTop: "20px",
-                  }}
-                >
-                  <span
-                    style={{
-                      color: "white",
-                      fontSize: "24px",
-                      fontWeight: "700",
-                      fontFamily: "SF Mono",
-                    }}
-                  >
-                    {sigCount > 0 ? `${sigCount}/1` : ""}
-                  </span>
-                </div>
               </div>
             )}
             {!loading && (
@@ -525,9 +426,17 @@ export default function Home() {
                       }}
                     >
                       <div
-                        className={!mobile ? "flex-row" : "flex-row"}
+                        className={
+                          !mobile
+                            ? meta.ens
+                              ? "flex-row"
+                              : "flex-column-align-left"
+                            : "flex-column"
+                        }
                         style={{
-                          margin: !mobile ? "-3.95% 0 0 -13%" : "0 0 0 0",
+                          margin: !mobile
+                            ? `-14.55% 0 0 ${meta.ens ? "-43%" : "-21%"}`
+                            : "0 0 0 -5%",
                           color: "#ff2600",
                         }}
                       >
@@ -545,11 +454,11 @@ export default function Home() {
                         </div>
                         <div
                           style={{
-                            marginLeft: "5px",
+                            marginLeft: meta.ens && !mobile ? "5px" : "0",
                             lineHeight: "23.5px",
                           }}
                         >
-                          <div style={{ margin: "-3px 0 1px 0" }}>
+                          <div style={{ margin: "-5px 0 1px 0" }}>
                             <span
                               className="mono"
                               id="metaManager"
@@ -560,9 +469,16 @@ export default function Home() {
                                   "metaManager"
                                 )
                               }
+                              style={{
+                                fontSize: meta.ens && !mobile ? "16px" : "14px",
+                              }}
                             >
                               {mobile
-                                ? constants.truncateHexString(meta.user)
+                                ? meta.ens
+                                  ? meta.ens
+                                  : constants.truncateHexString(meta.user)
+                                : meta.ens
+                                ? meta.ens
                                 : meta.user}
                             </span>
                           </div>
@@ -583,16 +499,7 @@ export default function Home() {
                         records={Object.values(records)}
                         hue={!_Wallet_ ? "white" : "orange"}
                       />
-                      <Salt
-                        handleTrigger={handleSaltTrigger}
-                        handleModalData={handleSaltModalData}
-                        onClose={() => {
-                          setSaltModal(false);
-                        }}
-                        show={saltModal}
-                      >
-                        {[String(_Wallet_), "gateway"]}
-                      </Salt>
+
                       <Success
                         color={color}
                         icon={"check_circle_outline"}
