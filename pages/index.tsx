@@ -198,19 +198,33 @@ export default function Home() {
   }
 
   // Finish updating records
-  function doSuccess() {
+  function doSuccess(ipns: string[], encoded: any[], timestamp: number[]) {
     setLoading(false);
     setWrite(false);
     let _records = { ...records };
+    let _history = { ...history };
     for (const key in _records) {
       if (_records[key].new) {
+        let _index = ipns.indexOf(_records[key].ipns);
+        // Update local records after write
         _records[key].ipfs = _records[key].new;
         _records[key].sequence = _records[key].sequence + 1;
-        _records[key].authority = "";
         _records[key].new = "";
+        _records[key].timestamp = timestamp[_index];
+        // Update history locally without remote fetch
+        _history.data.ipfs[_index] = _records[key].ipfs.split("ipfs://")[1];
+        _history.data.ipns[_index] = _records[key].ipns.split("ipns://")[1];
+        _history.data.name[_index] = _records[key].name;
+        _history.data.sequence[_index] = String(_records[key].sequence);
+        _history.data.timestamp[_index] = String(_records[key].timestamp);
+        // Update metadata locally
+        _history.data.revision[_index] = encoded[_index];
       }
     }
+    console.log("Records:", _records);
+    console.log("History:", _history);
     setRecords(_records);
+    setHistory(_history);
   }
 
   // Finish crashing and resetting
@@ -221,7 +235,6 @@ export default function Home() {
     for (const key in _records) {
       if (_records[key].new) {
         _records[key].new = "";
-        _records[key].authority = "";
       }
     }
     setRecords(_records);
@@ -278,6 +291,7 @@ export default function Home() {
       let newENS: string[] = [];
       let newAuthority: string[] = [];
       let newRevision: Name.Revision[] = [];
+      let newEncoded: any[] = [];
       for (const key in _records) {
         if (
           _records.hasOwnProperty(key) &&
@@ -328,16 +342,15 @@ export default function Home() {
                     // @W3Name broadcast
                     let _revision: Name.Revision;
                     let revision_: Nam3.Revision;
-                    if (history.data.ipns.indexOf(newIPNS[k]) > 0) {
+                    let _index = history.data.ipns.indexOf(
+                      newIPNS[k].split("ipns://")[1]
+                    );
+                    if (_index >= 0) {
                       let _revision_ = Revision.decode(
                         new Uint8Array(
                           Object.values(
                             JSON.parse(
-                              JSON.stringify(
-                                history.data.revision[
-                                  history.data.ipns.indexOf(newIPNS[k])
-                                ]
-                              )
+                              JSON.stringify(history.data.revision[_index])
                             )
                           )
                         )
@@ -356,12 +369,13 @@ export default function Home() {
                       JSON.stringify(Revision.encode(revision_))
                     ) {
                       newRevision.push(_revision);
+                      newEncoded.push(Revision.encode(_revision));
                       allSuccess = true;
                       setMessage("Successfully Updated IPNS Records");
+                      setColor("lime");
                       setSuccess("Successfully Updated IPNS Records");
                       setSuccessModal(true);
                     } else {
-                      newRevision.push(_revision);
                       allSuccess = false;
                       setMessage("Failed Update due to Metadata Divergence");
                       setCrash(true);
@@ -378,7 +392,7 @@ export default function Home() {
                       newName,
                       newSequence
                     );
-                    doSuccess();
+                    doSuccess(newIPNS, newEncoded, newTimestamp);
                   }
                 } else {
                   setMessage("Failed to Update IPNS Records");
@@ -399,7 +413,7 @@ export default function Home() {
       editRecord();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [write, meta, records]);
+  }, [write, meta, records, history]);
 
   return (
     <>

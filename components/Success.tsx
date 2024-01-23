@@ -61,7 +61,7 @@ const Success: React.FC<ModalProps> = ({ icon, color, show, onClose, children, h
             className="flex-row"
             style={{
               marginTop: '5px',
-              marginBottom: '5px'
+              marginBottom: '10px'
             }}
           >
             <button
@@ -106,7 +106,7 @@ const StyledModalBody = styled.div`
   margin-top: 15px;
   margin-left: ${isMobile ? '10px' : '20px'};
   margin-right: ${isMobile ? '10px' : '20px'};
-  margin-bottom: ${isMobile ? '15px' : '20px'};
+  margin-bottom: ${isMobile ? '10px' : '15px'};
   display: flex;
   justify-content: center;
   height: auto;
