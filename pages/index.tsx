@@ -12,7 +12,6 @@ import Success from "../components/Success";
 import Error from "../components/Error";
 import { useWindowDimensions } from "../hooks/useWindowDimensions";
 import { useAccount } from "wagmi";
-import * as ed25519 from "@noble/ed25519";
 import * as secp256k1 from "@noble/secp256k1";
 import * as Name from "w3name";
 import * as Nam3 from "@namesys-eth/w3name-client";
@@ -28,7 +27,7 @@ export default function Home() {
   const [success, setSuccess] = React.useState(""); // Sets success text for the Success modal
   const [successModal, setSuccessModal] = React.useState(false); // Success modal trigger
   const [message, setMessage] = React.useState("Loading"); // Set message to display
-  const [records, setRecords] = React.useState(constants.records); // Set records
+  const [records, setRecords] = React.useState(constants.makeRecords(4)); // Set records
   const [meta, setMeta] = React.useState(constants.meta); // Set ENS metadata
   const [loading, setLoading] = React.useState(true); // Loading Records marker
   const [history, setHistory] = React.useState(constants.EMPTY_HISTORY_RECORDS); // Record history from last update

@@ -12,6 +12,11 @@ import { Alchemy, Network } from "alchemy-sdk";
 import { ethers } from "ethers";
 import Web3 from "web3";
 
+export const modalBoolTemplate = {
+  modalData: false,
+  trigger: false,
+};
+
 export const modalTemplate = {
   modalData: "",
   trigger: false,
@@ -26,6 +31,11 @@ export const modalSuccessTemplate = {
   modalData: undefined,
   trigger: false,
 };
+
+export interface MainBoolState {
+  modalData: boolean;
+  trigger: boolean;
+}
 
 export interface MainBodyState {
   modalData: string;
@@ -47,6 +57,7 @@ export const zeroBytes = "0x" + "0".repeat(64);
 export const zeroKey = "0x" + "0".repeat(64);
 export const buffer = "\x19Ethereum Signed Message:\n";
 const ipnsRegex = /^[a-z0-9]{62}$/;
+const domainRegex = /^(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}$/;
 const ipfsRegexCID0 = /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/;
 const ipfsRegexCID1 = /^bafy[a-zA-Z0-9]{55}$/;
 const onionRegex = /^[a-z2-7]{16,56}$/;
@@ -193,89 +204,34 @@ export type RecordsType = [
   }
 ];
 
-// ENS Domain's Records
-export const records = [
-  {
-    id: 0,
-    name: "...",
-    ipns: "",
-    ipfs: "",
-    cid: {
-      v0: "",
-      v1: "",
-    },
-    sequence: 0,
-    loading: {
-      ipns: true,
-      ipfs: true,
-    },
-    ens: "",
-    new: "",
-    timestamp: 0,
-    block: false,
-    authority: "",
-  },
-  {
-    id: 1,
-    name: "...",
-    ipns: "",
-    ipfs: "",
-    cid: {
-      v0: "",
-      v1: "",
-    },
-    sequence: 0,
-    loading: {
-      ipns: true,
-      ipfs: true,
-    },
-    ens: "",
-    new: "",
-    timestamp: 0,
-    block: false,
-    authority: "",
-  },
-  {
-    id: 2,
-    name: "...",
-    ipns: "",
-    ipfs: "",
-    cid: {
-      v0: "",
-      v1: "",
-    },
-    sequence: 0,
-    loading: {
-      ipns: true,
-      ipfs: true,
-    },
-    ens: "",
-    new: "",
-    timestamp: 0,
-    block: false,
-    authority: "",
-  },
-  {
-    id: 3,
-    name: "...",
-    ipns: "",
-    ipfs: "",
-    cid: {
-      v0: "",
-      v1: "",
-    },
-    sequence: 0,
-    loading: {
-      ipns: true,
-      ipfs: true,
-    },
-    ens: "",
-    new: "",
-    timestamp: 0,
-    block: false,
-    authority: "",
-  },
-];
+// Make records template
+export function makeRecords(_length: number) {
+  const records = [];
+  for (let i = 0; i < _length; i++) {
+    const record = {
+      id: i,
+      name: "...",
+      ipns: "",
+      ipfs: "",
+      cid: {
+        v0: "",
+        v1: "",
+      },
+      sequence: 0,
+      loading: {
+        ipns: true,
+        ipfs: true,
+      },
+      ens: "",
+      new: "",
+      timestamp: 0,
+      block: false,
+      authority: "",
+    };
+    records.push(record);
+  }
+  return records;
+}
 
 // Returns formatted ed25519/IPNS keypair
 export function formatkey(keypair: [string, string]) {
@@ -303,6 +259,8 @@ export function isValue(id: string, value: string) {
     return false;
   }
 }
+
+
 
 // Truncate hex string
 export function truncateHexString(hexString: string) {

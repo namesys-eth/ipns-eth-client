@@ -8,12 +8,14 @@ import Help from "../components/Help";
 import Salt from "../components/Salt";
 import Loading from "../components/LoadingColors";
 import NameModal from "../components/Name";
+import ENSModal from "../components/ENS";
 import { KEYGEN } from "../utils/keygen";
 import Web3 from "web3";
 import * as secp256k1 from "@noble/secp256k1";
 import * as Name from "w3name";
 
 import { useAccount, useSignMessage } from "wagmi";
+import DeleteModal from "./Delete";
 
 interface RecordsContainerProps {
   meta: any;
@@ -41,17 +43,25 @@ const Records: React.FC<RecordsContainerProps> = ({
   const [message, setMessage] = React.useState("Loading"); // Set message to display
   const [loading, setLoading] = React.useState(false); // Loading Records marker
   const [editName, setEditName] = React.useState(-1); // Edit name of IPNS key
-  const [saltModal, setSaltModal] = React.useState(-1); // Salt (password/key-identifier)
+  const [saltModal, setSaltModal] = React.useState(-1); // Salt (password/key-identifier) modal
   const [sigCount, setSigCount] = React.useState(0); // Set signature count
   const [CID, setCID] = React.useState(""); // IPNS pubkey/CID value
-  const [inputValue, setInputValue] = React.useState(records); // Input state
+  const [inputValue, setInputValue] = React.useState(
+    historical.data.ipns.length < 5
+      ? records
+      : constants.makeRecords(historical.data.ipns.length)
+  ); // Input state
   const [mobile, setMobile] = React.useState(false); // Mobioe device
-  const [queue, setQueue] = React.useState<number[]>(longQueue); // Sets queue countdown between successive updates
   const [nameModal, setNameModal] = React.useState(false); // Edit name modal
+  const [ensModal, setENSModal] = React.useState(false); // Edit ENS modal
+  const [deleteModal, setDeleteModal] = React.useState(false); // Delete IPNS modal
   const [keypair, setKeypair] = React.useState<[string, string]>(["", ""]); // Sets generated K_IPNS keys
-  const [history, setHistory] = React.useState(historical); // Record history from last update
   const [nameModalState, setNameModalState] =
-    React.useState<constants.MainBodyState>(constants.modalTemplate);
+    React.useState<constants.MainBodyState>(constants.modalTemplate); // Name modal state
+  const [ensModalState, setENSModalState] =
+    React.useState<constants.MainBodyState>(constants.modalTemplate); // ENS modal state
+  const [deleteModalState, setDeleteModalState] =
+    React.useState<constants.MainBoolState>(constants.modalBoolTemplate); // ENS modal state
   const [saltModalState, setSaltModalState] =
     React.useState<constants.MainSaltState>(constants.modalSaltTemplate); // Salt modal state
   const { width, height } = useWindowDimensions();
@@ -68,8 +78,6 @@ const Records: React.FC<RecordsContainerProps> = ({
   const web3 = new Web3(alchemyEndpoint);
   const recoveredAddress = React.useRef<string>();
   const caip10 = `eip155:${chain}:${_Wallet_}`; // CAIP-10
-  const PORT = process.env.NEXT_PUBLIC_PORT;
-  const SERVER = process.env.NEXT_PUBLIC_SERVER;
 
   // Handle Name modal data return
   const handleNameModalData = (data: string) => {
@@ -78,6 +86,22 @@ const Records: React.FC<RecordsContainerProps> = ({
   // Handle Name modal trigger
   const handleNameTrigger = (trigger: boolean) => {
     setNameModalState((prevState) => ({ ...prevState, trigger: trigger }));
+  };
+  // Handle ENS modal data return
+  const handleENSModalData = (data: string) => {
+    setENSModalState((prevState) => ({ ...prevState, modalData: data }));
+  };
+  // Handle ENS modal trigger
+  const handleENSTrigger = (trigger: boolean) => {
+    setENSModalState((prevState) => ({ ...prevState, trigger: trigger }));
+  };
+  // Handle Delete modal data return
+  const handleDeleteModalData = (data: boolean) => {
+    setDeleteModalState((prevState) => ({ ...prevState, modalData: data }));
+  };
+  // Handle Delete modal trigger
+  const handleDeleteTrigger = (trigger: boolean) => {
+    setDeleteModalState((prevState) => ({ ...prevState, trigger: trigger }));
   };
   // Handle Salt modal data return
   const handleSaltModalData = (data: string) => {
@@ -103,10 +127,13 @@ const Records: React.FC<RecordsContainerProps> = ({
   // Gets live value of update
   function getVal(id: string, type: string) {
     return type === "ipns"
-      ? inputValue[inputValue.findIndex((_record) => _record.id === id)].ipns
+      ? inputValue[inputValue.findIndex((_record: any) => _record.id === id)]
+          .ipns
       : type === "ipfs"
-      ? inputValue[inputValue.findIndex((_record) => _record.id === id)].new
-      : inputValue[inputValue.findIndex((_record) => _record.id === id)].name;
+      ? inputValue[inputValue.findIndex((_record: any) => _record.id === id)]
+          .new
+      : inputValue[inputValue.findIndex((_record: any) => _record.id === id)]
+          .name;
   }
 
   // Get inactive values in records
@@ -134,24 +161,25 @@ const Records: React.FC<RecordsContainerProps> = ({
     if (isMobile || (width && width < 1300)) {
       setMobile(true);
     }
+    console.log(inputValue);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width, height, _Wallet_]);
 
-  // Adjust to history
+  // Adjust to historical
   React.useEffect(() => {
     if (
-      JSON.stringify(history) !==
+      JSON.stringify(historical) !==
       JSON.stringify(constants.EMPTY_HISTORY_RECORDS)
     ) {
       const _update = async () => {
         for (let i = 0; i < inputValue.length; i++) {
-          if (i < history.data.ipns.length) {
-            await update(i, "ipns://" + history.data.ipns[i], "ipns");
-            await update(i, "ipfs://" + history.data.ipfs[i], "ipfs");
-            await update(i, Number(history.data.timestamp[i]), "timestamp");
-            await update(i, history.data.revision[i], "revision");
-            await update(i, history.data.name[i], "name");
-            await update(i, Number(history.data.sequence[i]), "sequence");
+          if (i < historical.data.ipns.length) {
+            await update(i, "ipns://" + historical.data.ipns[i], "ipns");
+            await update(i, "ipfs://" + historical.data.ipfs[i], "ipfs");
+            await update(i, Number(historical.data.timestamp[i]), "timestamp");
+            await update(i, historical.data.revision[i], "revision");
+            await update(i, historical.data.name[i], "name");
+            await update(i, Number(historical.data.sequence[i]), "sequence");
           }
           await update(i, false, "loading.ipns");
           await update(i, false, "loading.ipfs");
@@ -161,7 +189,7 @@ const Records: React.FC<RecordsContainerProps> = ({
       _update();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [history]);
+  }, [historical]);
 
   // Edit names of keys
   React.useEffect(() => {
@@ -334,8 +362,8 @@ const Records: React.FC<RecordsContainerProps> = ({
     value: string | boolean | number,
     type: string
   ) {
-    setInputValue((prevInputValue) => {
-      const index = prevInputValue.findIndex((record) => record.id === id);
+    setInputValue((prevInputValue: any) => {
+      const index = prevInputValue.findIndex((record: any) => record.id === id);
       if (index !== -1) {
         const updatedRecords = [...prevInputValue];
         if (type === "ipns") {
@@ -455,7 +483,7 @@ const Records: React.FC<RecordsContainerProps> = ({
           </div>
         )}
         {!loading &&
-          inputValue.map((record, index) => (
+          inputValue.map((record: any, index: number) => (
             <div
               key={index}
               className={!mobile ? styles.arrange : "flex-column"}
@@ -471,6 +499,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                   }}
                 >
                   <div className="flex-row-sans-justify">
+                    {/* Name */}
                     <div
                       onClick={() =>
                         !record.ipns
@@ -492,9 +521,58 @@ const Records: React.FC<RecordsContainerProps> = ({
                         {record.name}
                       </h4>
                     </div>
+                    {/* ENS */}
                     <button
                       className="button-tiny"
-                      onClick={() => {}}
+                      disabled={!getVal(record.id, "ens")}
+                      data-tooltip={"Linked ENS"}
+                      onClick={() => setENSModal(true)}
+                    >
+                      <div
+                        style={{
+                          margin: "0 -5px -2px 10px",
+                        }}
+                      >
+                        <img alt="ens" src="ens.png" width="15px" />
+                      </div>
+                    </button>
+                    {/* Delete */}
+                    <button
+                      className="button-tiny"
+                      disabled={!getVal(record.id, "ipns")}
+                      data-tooltip={"Delete IPNS Key"}
+                      onClick={() => setDeleteModal(true)}
+                    >
+                      <div
+                        style={{
+                          marginLeft: "5px",
+                        }}
+                      >
+                        <div
+                          className="material-icons-round smol"
+                          style={{
+                            color: "orangered",
+                            fontSize: "18px",
+                          }}
+                        >
+                          {"delete"}
+                        </div>
+                      </div>
+                    </button>
+                    {/* Value verify badge */}
+                    <button
+                      className="button-tiny"
+                      hidden={
+                        getVal(record.id, "ipfs") &&
+                        constants.isGoodValue(
+                          "contenthash",
+                          getVal(record.id, "ipfs")
+                        )
+                          ? false
+                          : !getVal(record.id, "ipfs")
+                          ? true
+                          : false
+                      }
                       data-tooltip={
                         getVal(record.id, "ipfs") &&
                         constants.isGoodValue(
@@ -520,7 +598,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                               : !getVal(record.id, "ipfs")
                               ? "transparent"
                               : "orangered",
-                          marginLeft: "5px",
+                          margin: "0 0 0 3px",
                         }}
                       >
                         {getVal(record.id, "ipfs") &&
@@ -533,6 +611,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                       </div>
                     </button>
                   </div>
+                  {/* Edit button */}
                   <div>
                     <button
                       className="button flex-row"
@@ -790,6 +869,22 @@ const Records: React.FC<RecordsContainerProps> = ({
                     saltModal,
                   ]}
                 </Salt>
+                <ENSModal
+                  onClose={() => setENSModal(false)}
+                  show={ensModal}
+                  handleTrigger={handleENSTrigger}
+                  handleModalData={handleENSModalData}
+                >
+                  {record.ens}
+                </ENSModal>
+                <DeleteModal
+                  onClose={() => setDeleteModal(false)}
+                  show={deleteModal}
+                  handleTrigger={handleDeleteTrigger}
+                  handleModalData={handleDeleteModalData}
+                >
+                  {record.ipns}
+                </DeleteModal>
               </div>
             </div>
           ))}
