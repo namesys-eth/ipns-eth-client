@@ -10,10 +10,8 @@ import Loading from "../components/LoadingColors";
 import NameModal from "../components/Name";
 import { KEYGEN } from "../utils/keygen";
 import Web3 from "web3";
-import * as ed25519 from "@noble/ed25519";
 import * as secp256k1 from "@noble/secp256k1";
 import * as Name from "w3name";
-import * as Nam3 from "@namesys-eth/w3name-client";
 
 import { useAccount, useSignMessage } from "wagmi";
 
@@ -21,6 +19,8 @@ interface RecordsContainerProps {
   meta: any;
   records: any[];
   hue: string;
+  longQueue: number[];
+  historical: typeof constants.EMPTY_HISTORY_RECORDS;
   handleModalData: (data: string) => void;
   handleTrigger: (data: boolean) => void;
 }
@@ -29,6 +29,8 @@ const Records: React.FC<RecordsContainerProps> = ({
   meta,
   records,
   hue,
+  longQueue,
+  historical,
   handleModalData,
   handleTrigger,
 }) => {
@@ -41,14 +43,13 @@ const Records: React.FC<RecordsContainerProps> = ({
   const [editName, setEditName] = React.useState(-1); // Edit name of IPNS key
   const [saltModal, setSaltModal] = React.useState(-1); // Salt (password/key-identifier)
   const [sigCount, setSigCount] = React.useState(0); // Set signature count
-  const [write, setWrite] = React.useState(false); // Triggers update of record
   const [CID, setCID] = React.useState(""); // IPNS pubkey/CID value
   const [inputValue, setInputValue] = React.useState(records); // Input state
   const [mobile, setMobile] = React.useState(false); // Mobioe device
-  const [queue, setQueue] = React.useState<number[]>([]); // Sets queue countdown between successive updates
+  const [queue, setQueue] = React.useState<number[]>(longQueue); // Sets queue countdown between successive updates
   const [nameModal, setNameModal] = React.useState(false); // Edit name modal
   const [keypair, setKeypair] = React.useState<[string, string]>(["", ""]); // Sets generated K_IPNS keys
-  const [history, setHistory] = React.useState(constants.EMPTY_HISTORY_RECORDS); // Record history from last update
+  const [history, setHistory] = React.useState(historical); // Record history from last update
   const [nameModalState, setNameModalState] =
     React.useState<constants.MainBodyState>(constants.modalTemplate);
   const [saltModalState, setSaltModalState] =
@@ -67,7 +68,6 @@ const Records: React.FC<RecordsContainerProps> = ({
   const web3 = new Web3(alchemyEndpoint);
   const recoveredAddress = React.useRef<string>();
   const caip10 = `eip155:${chain}:${_Wallet_}`; // CAIP-10
-  const origin = `eth:${_Wallet_ || constants.zeroAddress}`;
   const PORT = process.env.NEXT_PUBLIC_PORT;
   const SERVER = process.env.NEXT_PUBLIC_SERVER;
 
@@ -91,6 +91,13 @@ const Records: React.FC<RecordsContainerProps> = ({
   // Whether connector is authorised to write
   function unauthorised() {
     return !_Wallet_;
+  }
+
+  // Finish updating one record
+  function doFinish() {
+    setSigCount(0);
+    setKeypair(["", ""]);
+    setCID("");
   }
 
   // Gets live value of update
@@ -122,53 +129,11 @@ const Records: React.FC<RecordsContainerProps> = ({
     );
   }
 
-  // Get records from history on backend
-  // Must get Revision for IPNS update
-  async function getUpdate(wallet: string) {
-    const request = {
-      user: String(wallet),
-      timestamp: Math.round(Date.now() / 1000),
-    };
-    try {
-      await fetch(`${SERVER}:${PORT}/read`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(request),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          let _history = {
-            type: "history",
-            data: data.response.data,
-          };
-          setHistory(_history);
-          let _queue = [];
-          for (let i = 0; i < records.length; i++) {
-            if (data.response.data.timestamp[i]) {
-              _queue.push(
-                Math.round(Date.now() / 1000) -
-                  Number(data.response.data.timestamp[i]) -
-                  constants.waitingPeriod
-              );
-            } else {
-              _queue.push(0);
-            }
-          }
-          setQueue(_queue);
-        });
-    } catch (error) {
-      console.error("ERROR:", "Failed to read from IPNS.eth backend");
-    }
-  }
-
   // INIT
   React.useEffect(() => {
     if (isMobile || (width && width < 1300)) {
       setMobile(true);
     }
-    getUpdate(String(_Wallet_));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width, height, _Wallet_]);
 
@@ -181,12 +146,12 @@ const Records: React.FC<RecordsContainerProps> = ({
       const _update = async () => {
         for (let i = 0; i < inputValue.length; i++) {
           if (i < history.data.ipns.length) {
-            await update(i, history.data.ipns[i], "ipns");
-            await update(i, history.data.ipfs[i], "ipfs");
-            await update(i, history.data.timestamp[i], "timestamp");
+            await update(i, "ipns://" + history.data.ipns[i], "ipns");
+            await update(i, "ipfs://" + history.data.ipfs[i], "ipfs");
+            await update(i, Number(history.data.timestamp[i]), "timestamp");
             await update(i, history.data.revision[i], "revision");
             await update(i, history.data.name[i], "name");
-            await update(i, history.data.sequence[i], "sequence");
+            await update(i, Number(history.data.sequence[i]), "sequence");
           }
           await update(i, false, "loading.ipns");
           await update(i, false, "loading.ipfs");
@@ -224,15 +189,14 @@ const Records: React.FC<RecordsContainerProps> = ({
 
   // Trigger name update from Salt modal
   React.useEffect(() => {
-    if (saltModal !== -1) {
+    if (saltModal === -1) {
       if (saltModalState.trigger && saltModalState.modalData) {
         const _update = async () => {
           await update(
-            saltModal,
+            progress,
             saltModalState.modalData.split(":")[0],
             "name"
           );
-          setProgress(saltModal);
           setSaltModal(-1);
           setSaltModalState(constants.modalSaltTemplate);
         };
@@ -240,11 +204,11 @@ const Records: React.FC<RecordsContainerProps> = ({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saltModalState, saltModal]);
+  }, [saltModalState, saltModal, progress]);
 
   // Signature S_IPNS statement; S_IPNS(K_WALLET) [IPNS Keygen]
   // S_IPNS is not recovered on-chain; no need for buffer prepend and hashing of message required to sign
-  function statementIPNSKey(extradata: string) {
+  function statementIPNSKey(origin: string, extradata: string) {
     let _toSign = `Requesting Signature To Generate IPNS Key\n\nOrigin: ${origin}\nKey Type: ed25519\nExtradata: ${extradata}\nSigned By: ${caip10}`;
     let _digest = _toSign;
     return _digest;
@@ -270,6 +234,7 @@ const Records: React.FC<RecordsContainerProps> = ({
       const SIGN_SIGNER = async () => {
         signMessage({
           message: statementIPNSKey(
+            saltModalState.modalData.split(":")[0],
             ethers.keccak256(
               ethers.solidityPacked(
                 ["bytes32", "address"],
@@ -277,7 +242,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                   ethers.keccak256(
                     ethers.solidityPacked(
                       ["string"],
-                      [saltModalState.modalData]
+                      [saltModalState.modalData.split(":")[1]]
                     )
                   ),
                   _Wallet_,
@@ -298,13 +263,14 @@ const Records: React.FC<RecordsContainerProps> = ({
       if (sigCount === 1 && !keypair[0]) {
         setMessage("Generating IPNS Key");
         const keygen = async () => {
-          const _origin = `eth:${_Wallet_ || constants.zeroAddress}`;
+          const _origin = saltModalState.modalData.split(":")[0];
           const __keypair = await KEYGEN(
             _origin,
             caip10,
             signature,
-            saltModalState.modalData
+            saltModalState.modalData.split(":")[1]
           );
+          update(progress, constants.formatkey(__keypair), "authority");
           setKeypair(__keypair);
           setMessage("IPNS Key Generated");
         };
@@ -336,6 +302,7 @@ const Records: React.FC<RecordsContainerProps> = ({
         await update(progress, `ipns://${CID}`, "ipns");
         await update(progress, false, "loading.ipns");
         setLoading(false);
+        doFinish();
       };
       _update();
     }
@@ -362,7 +329,11 @@ const Records: React.FC<RecordsContainerProps> = ({
   };
 
   // Update values
-  async function update(id: number, value: string | boolean, type: string) {
+  async function update(
+    id: number,
+    value: string | boolean | number,
+    type: string
+  ) {
     setInputValue((prevInputValue) => {
       const index = prevInputValue.findIndex((record) => record.id === id);
       if (index !== -1) {
@@ -379,6 +350,13 @@ const Records: React.FC<RecordsContainerProps> = ({
           updatedRecords[index] = { ...updatedRecords[index], revision: value };
         } else if (type === "sequence") {
           updatedRecords[index] = { ...updatedRecords[index], sequence: value };
+        } else if (type === "block") {
+          updatedRecords[index] = { ...updatedRecords[index], block: value };
+        } else if (type === "authority") {
+          updatedRecords[index] = {
+            ...updatedRecords[index],
+            authority: value,
+          };
         } else if (type === "timestamp") {
           updatedRecords[index] = {
             ...updatedRecords[index],
@@ -387,12 +365,12 @@ const Records: React.FC<RecordsContainerProps> = ({
         } else if (type === "loading.ipns") {
           updatedRecords[index] = {
             ...updatedRecords[index],
-            loading: { ipns: value },
+            loading: { ...updatedRecords[index].loading, ipns: value },
           };
         } else if (type === "loading.ipfs") {
           updatedRecords[index] = {
             ...updatedRecords[index],
-            loading: { ipfs: value },
+            loading: { ...updatedRecords[index].loading, ipfs: value },
           };
         }
         return updatedRecords;
@@ -403,6 +381,32 @@ const Records: React.FC<RecordsContainerProps> = ({
 
   return (
     <div className="flex-column">
+      <div>
+        <button
+          className="button flex-row emphasis"
+          style={{
+            alignSelf: "flex-end",
+            height: "25px",
+            width: "auto",
+            marginBottom: "6px",
+            marginTop: "-31px",
+          }}
+          disabled={constants.countVal(inputValue) < 2}
+          hidden={constants.countVal(inputValue) < 2}
+          onClick={handleSubmit}
+          data-tooltip={"Write Record"}
+        >
+          <div>{"Edit All"}</div>
+          <div
+            className="material-icons-round smol"
+            style={{
+              color: "white",
+            }}
+          >
+            edit
+          </div>
+        </button>
+      </div>
       <div className={!mobile ? styles.grid : "flex-column"}>
         {loading && (
           <div className="flex-column">
@@ -468,7 +472,11 @@ const Records: React.FC<RecordsContainerProps> = ({
                 >
                   <div className="flex-row-sans-justify">
                     <div
-                      onClick={() => setEditName(record.id)}
+                      onClick={() =>
+                        !record.ipns
+                          ? setEditName(record.id)
+                          : update(record.id, true, "block")
+                      }
                       style={{
                         cursor: "text",
                       }}
@@ -544,7 +552,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                         !constants.isGoodValue(
                           "contenthash",
                           getVal(record.id, "ipfs")
-                        )
+                        ) || constants.countVal(inputValue) > 1
                       }
                       onClick={handleSubmit}
                       data-tooltip={"Write Record"}
@@ -581,6 +589,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                         }
                         onChange={(e) => {
                           update(record.id, e.target.value, "ipns");
+                          update(record.id, true, "block");
                         }}
                         disabled={true}
                         style={{
@@ -606,7 +615,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                             )
                               ? "lightgreen"
                               : hue,
-                          cursor: "default",
+                          cursor: record.block ? "not-allowed" : "default",
                         }}
                       />
                       <div
@@ -668,9 +677,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                         onChange={(e) => {
                           update(record.id, e.target.value, "new");
                         }}
-                        disabled={
-                          unauthorised() || record.block || !record.ipns
-                        }
+                        disabled={unauthorised() || !record.ipns}
                         style={{
                           background: "#082400",
                           outline: "none",
@@ -702,7 +709,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                               ? "lightgreen"
                               : hue,
                           cursor:
-                            unauthorised() || record.block || !record.ipns
+                            unauthorised() || !record.ipns
                               ? "not-allowed"
                               : "text",
                         }}
@@ -717,33 +724,40 @@ const Records: React.FC<RecordsContainerProps> = ({
                             record.ipfs || record.new
                               ? "0 0 0 -25px"
                               : "0 0 0 -25px",
-                          color:
-                            !record.loading.ipfs && !record.ipfs
+                          color: !record.loading.ipfs
+                            ? record.ipfs
                               ? "lightgreen"
-                              : "white",
+                              : "white"
+                            : "white",
                           cursor: !record.loading.ipfs
                             ? record.ipfs
                               ? "copy"
-                              : "not-allowed"
+                              : "default"
                             : "wait",
                           opacity: nameModal
                             ? "0"
                             : !record.ipfs && !record.new
-                            ? "0.15"
+                            ? record.ipns
+                              ? "1"
+                              : "0.35"
                             : "1",
                         }}
                         onClick={() =>
-                          constants.copyToClipboard(
-                            `${record.ipfs || record.new}`,
-                            `${record.id}-ipfs-copy`,
-                            `${record.id}-ipfs`
-                          )
+                          record.ipfs
+                            ? constants.copyToClipboard(
+                                `${record.ipfs || record.new}`,
+                                `${record.id}-ipfs-copy`,
+                                `${record.id}-ipfs`
+                              )
+                            : ""
                         }
                       >
                         {!record.loading.ipfs
                           ? record.ipfs
                             ? "content_copy"
                             : record.new
+                            ? "lock_open"
+                            : record.ipns
                             ? "lock_open"
                             : "lock"
                           : "hourglass_top"}
@@ -766,7 +780,8 @@ const Records: React.FC<RecordsContainerProps> = ({
                   handleTrigger={handleSaltTrigger}
                   handleModalData={handleSaltModalData}
                   onClose={() => {
-                    setSaltModal(-2);
+                    setProgress(saltModal);
+                    setSaltModal(-1);
                   }}
                   show={saltModal >= 0}
                 >

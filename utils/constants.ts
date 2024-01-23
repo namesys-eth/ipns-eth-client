@@ -180,14 +180,16 @@ export type RecordsType = [
       v0: string;
       v1: string;
     };
-    source: string;
+    sequence: number;
     loading: {
       ipns: boolean;
       ipfs: boolean;
     };
     new: string;
     ens: string;
+    timestamp: number;
     block: boolean;
+    authority: string;
   }
 ];
 
@@ -202,14 +204,16 @@ export const records = [
       v0: "",
       v1: "",
     },
-    source: "",
+    sequence: 0,
     loading: {
       ipns: true,
       ipfs: true,
     },
     ens: "",
     new: "",
+    timestamp: 0,
     block: false,
+    authority: "",
   },
   {
     id: 1,
@@ -220,14 +224,16 @@ export const records = [
       v0: "",
       v1: "",
     },
-    source: "",
+    sequence: 0,
     loading: {
       ipns: true,
       ipfs: true,
     },
     ens: "",
     new: "",
+    timestamp: 0,
     block: false,
+    authority: "",
   },
   {
     id: 2,
@@ -238,14 +244,16 @@ export const records = [
       v0: "",
       v1: "",
     },
-    source: "",
+    sequence: 0,
     loading: {
       ipns: true,
       ipfs: true,
     },
     ens: "",
     new: "",
+    timestamp: 0,
     block: false,
+    authority: "",
   },
   {
     id: 3,
@@ -256,14 +264,16 @@ export const records = [
       v0: "",
       v1: "",
     },
-    source: "",
+    sequence: 0,
     loading: {
       ipns: true,
       ipfs: true,
     },
     ens: "",
     new: "",
+    timestamp: 0,
     block: false,
+    authority: "",
   },
 ];
 
@@ -391,3 +401,17 @@ export const EMPTY_HISTORY_RECORDS = {
     name: [""],
   },
 };
+
+// Counts live values of update
+export function countVal(records: any) {
+  let nonEmptyNewCount = 0;
+  for (const key in records) {
+    if (
+      records.hasOwnProperty(key) &&
+      isGoodValue("contenthash", records[key].new)
+    ) {
+      nonEmptyNewCount++;
+    }
+  }
+  return nonEmptyNewCount;
+}

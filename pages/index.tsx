@@ -12,6 +12,10 @@ import Success from "../components/Success";
 import Error from "../components/Error";
 import { useWindowDimensions } from "../hooks/useWindowDimensions";
 import { useAccount } from "wagmi";
+import * as ed25519 from "@noble/ed25519";
+import * as secp256k1 from "@noble/secp256k1";
+import * as Name from "w3name";
+import * as Nam3 from "@namesys-eth/w3name-client";
 import "./index.css";
 
 export default function Home() {
@@ -27,12 +31,15 @@ export default function Home() {
   const [records, setRecords] = React.useState(constants.records); // Set records
   const [meta, setMeta] = React.useState(constants.meta); // Set ENS metadata
   const [loading, setLoading] = React.useState(true); // Loading Records marker
+  const [history, setHistory] = React.useState(constants.EMPTY_HISTORY_RECORDS); // Record history from last update
+  const [queue, setQueue] = React.useState<number[]>([]); // Sets queue countdown between successive updates
   const [recordsState, setRecordsState] =
     React.useState<constants.MainBodyState>(constants.modalTemplate); // Records body state
   const [successModalState, setSuccessModalState] =
     React.useState<constants.MainSuccessState>(constants.modalSuccessTemplate);
   // Variables
   const chain = process.env.NEXT_PUBLIC_NETWORK === "mainnet" ? "1" : "5";
+  const { Revision } = Name; // W3Name Revision object
   const { address: _Wallet_ } = useAccount();
   const apiKey =
     chain === "1"
@@ -64,17 +71,6 @@ export default function Home() {
   };
 
   // FUNCTIONS
-  // Counts live values of update
-  function countVal(records: typeof constants.records) {
-    let nonEmptyNewCount = 0;
-    for (var i = 0; i < records.length; i++) {
-      if (records[i].new !== "") {
-        nonEmptyNewCount++;
-      }
-    }
-    return nonEmptyNewCount;
-  }
-
   // Get Avatar
   async function getAvatar(wallet: any) {
     const _meta = { ...meta };
@@ -99,30 +95,80 @@ export default function Home() {
     }
   }
 
+  // Get records from history on backend
+  // Must get Revision for IPNS update
+  async function getUpdate(wallet: string) {
+    const request = {
+      user: String(wallet),
+    };
+    try {
+      await fetch(`${SERVER}:${PORT}/read`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          let _history = {
+            type: "history",
+            data: data.response.data,
+          };
+          setHistory(_history);
+          let _queue = [];
+          for (let i = 0; i < records.length; i++) {
+            if (data.response.data.timestamp[i]) {
+              _queue.push(
+                Math.round(Date.now() / 1000) -
+                  Number(data.response.data.timestamp[i]) -
+                  constants.waitingPeriod
+              );
+            } else {
+              _queue.push(0);
+            }
+          }
+          setQueue(_queue);
+        });
+    } catch (error) {
+      console.error("ERROR:", "Failed to read from IPNS.eth backend");
+    }
+  }
+
   // Function for writing IPNS Revision metadata to NameSys backend; needed for updates
   async function writeRevision(
-    revision: undefined,
-    gas: {},
-    timestamp: string,
-    _ipfs: string
+    revision: Name.Revision[],
+    timestamp: number[],
+    ipns: string[],
+    ipfs: string[],
+    name: string[],
+    sequence: number[]
   ) {
-    let __revision: any = {};
-    if (revision) {
-      const _revision = JSON.parse(
-        JSON.stringify(revision, (key, value) => {
-          return typeof value === "bigint" ? String(value) : value;
-        })
-      );
-      if (_revision._name._privKey) _revision._name._privKey._key = {};
-      __revision = JSON.stringify(_revision);
-    } else {
-      __revision = JSON.stringify(__revision);
+    let __revision: any = [];
+    let ___encoded: any = [];
+    for (var i = 0; i < revision.length; i++) {
+      let _revision_: any = {};
+      if (revision.length > 0 && revision[i]) {
+        const _revision = JSON.parse(
+          JSON.stringify(revision[i], (key, value) => {
+            return typeof value === "bigint" ? String(value) : value;
+          })
+        );
+        if (_revision._name._privKey) _revision._name._privKey._key = {};
+        _revision_ = JSON.stringify(_revision);
+      } else {
+        _revision_ = JSON.stringify(_revision_);
+      }
+      __revision.push(_revision_);
+      ___encoded.push(Revision.encode(revision[i]));
     }
     const request = {
       user: _Wallet_,
-      revision: {},
-      ipns: "",
-      ipfs: _ipfs,
+      revision: revision.length > 0 ? ___encoded : [{}],
+      ipns: ipns,
+      ipfs: ipfs,
+      name: name,
+      sequence: sequence,
       version: __revision,
       timestamp: timestamp,
     };
@@ -135,9 +181,9 @@ export default function Home() {
         body: JSON.stringify(request),
       })
         .then((response) => response.json())
-        .then((data) => {
-          if (data.status) {
-            return data.status === "true";
+        .then(async (data) => {
+          if (data.response.status) {
+            return data.response.status === "true";
           } else {
             return false;
           }
@@ -146,9 +192,39 @@ export default function Home() {
       console.error("ERROR:", "Failed to write Revision to CCIP2 backend");
       setMessage("Revision Update Failed");
       setCrash(true);
-      setLoading(false);
       setColor("orangered");
+      doCrash();
     }
+  }
+
+  // Finish updating records
+  function doSuccess() {
+    setLoading(false);
+    setWrite(false);
+    let _records = { ...records };
+    for (const key in _records) {
+      if (_records[key].new) {
+        _records[key].ipfs = _records[key].new;
+        _records[key].sequence = _records[key].sequence + 1;
+        _records[key].authority = "";
+        _records[key].new = "";
+      }
+    }
+    setRecords(_records);
+  }
+
+  // Finish crashing and resetting
+  function doCrash() {
+    setLoading(false);
+    setWrite(false);
+    let _records = { ...records };
+    for (const key in _records) {
+      if (_records[key].new) {
+        _records[key].new = "";
+        _records[key].authority = "";
+      }
+    }
+    setRecords(_records);
   }
 
   // INIT
@@ -156,11 +232,12 @@ export default function Home() {
     if (isMobile || (width && width < 1300)) {
       setMobile(true);
     }
+    getUpdate(String(_Wallet_));
     setTimeout(() => {
       setLoading(false);
     }, 2000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [width, height]);
+  }, [width, height, _Wallet_]);
 
   React.useEffect(() => {
     if (_Wallet_ && String(_Wallet_) !== constants.zeroAddress) {
@@ -181,6 +258,7 @@ export default function Home() {
         _records[_allRecords[i].id] = _allRecords[i];
       }
       setRecords(_records);
+      setWrite(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recordsState]);
@@ -189,25 +267,42 @@ export default function Home() {
   // Handles writing records to the NameSys backend
   React.useEffect(() => {
     let _records = { ...records };
-    let count = countVal(_records);
+    let count = constants.countVal(_records);
     if (write && count > 0) {
       setLoading(true);
-      let newValues: any = {};
-      let newKeys: string[] = [];
-      for (var key = 0; key < _records.length; key++) {
-        if (_records[key].new !== "") {
-          newValues[key] = _records[key].new;
-          newKeys.push(_records[key].name);
+      let newIPFS: string[] = [];
+      let newIPNS: string[] = [];
+      let newName: string[] = [];
+      let newTimestamp: number[] = [];
+      let newSequence: number[] = [];
+      let newENS: string[] = [];
+      let newAuthority: string[] = [];
+      let newRevision: Name.Revision[] = [];
+      for (const key in _records) {
+        if (
+          _records.hasOwnProperty(key) &&
+          constants.isGoodValue("contenthash", _records[key].new)
+        ) {
+          newIPFS.push(_records[key].new);
+          newIPNS.push(_records[key].ipns);
+          newName.push(_records[key].name);
+          newTimestamp.push(Math.round(Date.now() / 1000));
+          newENS.push(_records[key].ens);
+          newSequence.push(_records[key].sequence + 1);
+          newAuthority.push(_records[key].authority);
         }
       }
       // Generate POST request for writing records
       const request = {
         user: _Wallet_ || constants.zeroAddress,
-        ipns: newKeys,
-        ipfs: newValues,
+        ipns: newIPNS,
+        ipfs: newIPFS,
+        timestamp: newTimestamp,
+        name: newName,
+        ens: newENS,
       };
       const editRecord = async () => {
-        setMessage("Writing Records");
+        setMessage("Writing IPNS Records");
         try {
           await fetch(`${SERVER}:${PORT}/write`, {
             method: "post",
@@ -219,21 +314,92 @@ export default function Home() {
             .then((response) => response.json())
             .then(async (data) => {
               if (data.response) {
-                // Get gas consumption estimate
+                if (data.response.status) {
+                  setMessage("Successfully Indexed IPNS Records");
+                  // Handle revision
+                  let allSuccess: boolean = false;
+                  for (var k = 0; k < newIPNS.length; k++) {
+                    let key = newAuthority[k];
+                    let w3name: Name.WritableName;
+                    let w3nam3: Nam3.WritableName;
+                    w3name = await Name.from(secp256k1.utils.hexToBytes(key));
+                    w3nam3 = await Nam3.from(secp256k1.utils.hexToBytes(key));
+                    const toPublish = "/ipfs/" + newIPFS[k].split("ipfs://")[1];
+                    // @W3Name broadcast
+                    let _revision: Name.Revision;
+                    let revision_: Nam3.Revision;
+                    if (history.data.ipns.indexOf(newIPNS[k]) > 0) {
+                      let _revision_ = Revision.decode(
+                        new Uint8Array(
+                          Object.values(
+                            JSON.parse(
+                              JSON.stringify(
+                                history.data.revision[
+                                  history.data.ipns.indexOf(newIPNS[k])
+                                ]
+                              )
+                            )
+                          )
+                        )
+                      );
+                      _revision = await Name.increment(_revision_, toPublish);
+                      revision_ = await Nam3.increment(_revision_, toPublish);
+                    } else {
+                      _revision = await Name.v0(w3name, toPublish);
+                      revision_ = await Nam3.v0(w3nam3, toPublish);
+                    }
+                    await Name.publish(_revision, w3name.key);
+                    //await Nam3.publish(revision_, w3nam3.key);
+                    // [!!!] _revision === revision_
+                    if (
+                      JSON.stringify(Revision.encode(_revision)) ===
+                      JSON.stringify(Revision.encode(revision_))
+                    ) {
+                      newRevision.push(_revision);
+                      allSuccess = true;
+                      setMessage("Successfully Updated IPNS Records");
+                      setSuccess("Successfully Updated IPNS Records");
+                      setSuccessModal(true);
+                    } else {
+                      newRevision.push(_revision);
+                      allSuccess = false;
+                      setMessage("Failed Update due to Metadata Divergence");
+                      setCrash(true);
+                      setColor("orangered");
+                      doCrash();
+                    }
+                  }
+                  if (allSuccess) {
+                    await writeRevision(
+                      newRevision,
+                      newTimestamp,
+                      newIPNS,
+                      newIPFS,
+                      newName,
+                      newSequence
+                    );
+                    doSuccess();
+                  }
+                } else {
+                  setMessage("Failed to Update IPNS Records");
+                  setCrash(true);
+                  setColor("orangered");
+                  doCrash();
+                }
               }
             });
         } catch (error) {
-          console.error("ERROR:", "Failed to write to CCIP2 backend");
-          setMessage("Record Update Failed");
+          console.error("ERROR:", "Failed to write to IPNS.eth backend");
+          setMessage("IPNS Record Update Failed");
           setCrash(true);
-          setLoading(false);
           setColor("orangered");
+          doCrash();
         }
       };
       editRecord();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [write, meta]);
+  }, [write, meta, records]);
 
   return (
     <>
@@ -244,7 +410,7 @@ export default function Home() {
       <main className="flex-column">
         <div style={{ fontFamily: "SF Mono" }}></div>
         <div style={{ fontFamily: "Spotnik" }}></div>
-        <div style={{ marginTop: mobile ? "23.5%" : "7.5%" }}></div>
+        <div style={{ marginTop: mobile ? "50px" : "125px" }}></div>
         {/* HOME */}
         {!user && (
           <div className="flex-column">
@@ -268,7 +434,9 @@ export default function Home() {
                   ? "emphasis flex-row home-button"
                   : "emphasis-large flex-row home-button"
               }
-              style={{ margin: mobile ? "60px 0 60px 0" : "90px 0 120px 0" }}
+              style={{
+                margin: mobile ? "60px 0 60px 0" : "90px 0 120px 0",
+              }}
             >
               <ConnectButton label="Login &nbsp;&nbsp;&nbsp;&nbsp;" />
               <div
@@ -435,7 +603,7 @@ export default function Home() {
                         }
                         style={{
                           margin: !mobile
-                            ? `-14.55% 0 0 ${meta.ens ? "-43%" : "-21%"}`
+                            ? `-14.55% 0 0 ${meta.ens ? "-33%" : "-10%"}`
                             : "0 0 0 -5%",
                           color: "#ff2600",
                         }}
@@ -445,16 +613,23 @@ export default function Home() {
                           style={{
                             alignItems: "flex-end",
                             lineHeight: "20px",
-                            marginTop: "-5px",
+                            marginTop: !mobile ? "0" : "-5px",
                           }}
                         >
                           <div>
-                            <span>{"Welcome"}</span>
+                            <span
+                              style={{
+                                fontSize: !mobile ? "17px" : "16px",
+                              }}
+                            >
+                              {"Welcome"}
+                            </span>
                           </div>
                         </div>
                         <div
                           style={{
-                            marginLeft: meta.ens && !mobile ? "5px" : "0",
+                            marginLeft: meta.ens && !mobile ? "10px" : "0",
+                            marginTop: !mobile ? "5px" : "5px",
                             lineHeight: "23.5px",
                           }}
                         >
@@ -470,7 +645,7 @@ export default function Home() {
                                 )
                               }
                               style={{
-                                fontSize: meta.ens && !mobile ? "16px" : "14px",
+                                fontSize: meta.ens && !mobile ? "22px" : "18px",
                               }}
                             >
                               {mobile
@@ -498,11 +673,12 @@ export default function Home() {
                         handleTrigger={handleRecordsTrigger}
                         records={Object.values(records)}
                         hue={!_Wallet_ ? "white" : "orange"}
+                        historical={history}
+                        longQueue={queue}
                       />
-
                       <Success
                         color={color}
-                        icon={"check_circle_outline"}
+                        icon={"energy_savings_leaf"}
                         onClose={() => setSuccessModal(false)}
                         show={successModal}
                         handleTrigger={handleSuccessTrigger}

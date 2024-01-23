@@ -75,7 +75,7 @@ const Success: React.FC<ModalProps> = ({ icon, color, show, onClose, children, h
               <div
                 className="flex-row"
                 style={{
-                  fontSize: '15px',
+                  fontSize: '18px',
                   fontWeight: '700'
                 }}
               >
@@ -102,8 +102,8 @@ const StyledModalBody = styled.div`
   padding-top: 0px;
   padding-left: ${isMobile ? '10px' : '20px'};
   padding-right: ${isMobile ? '10px' : '20px'};
-  padding-bottom: 5px;
-  margin-top: 0px;
+  padding-bottom: 0;
+  margin-top: 15px;
   margin-left: ${isMobile ? '10px' : '20px'};
   margin-right: ${isMobile ? '10px' : '20px'};
   margin-bottom: ${isMobile ? '15px' : '20px'};
@@ -111,15 +111,15 @@ const StyledModalBody = styled.div`
   justify-content: center;
   height: auto;
   overflow-y: auto;
-  color: white;
-  font-size: 18px;
+  color: lime;
+  font-size: 24px;
   font-weight: 700;
-  line-height: 22px;
+  line-height: 34px;
   max-width: ${isMobile ? '400px' : '400px'};
 `
 
 const StyledModalTitle = styled.div`
-  margin-top: -15px;
+  margin-top: 0px;
   font-size: 20px;
   display: flex;
   justify-content: center;

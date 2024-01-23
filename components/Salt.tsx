@@ -153,7 +153,7 @@ const Salt: React.FC<ModalProps> = ({
                   textAlign: "left",
                   color:
                     username.length > 2 ? "lime" : "rgb(255, 255, 255, 0.6)",
-                  cursor: "copy",
+                  cursor: "text",
                   marginBottom: "10px",
                 }}
               />
@@ -212,7 +212,7 @@ const Salt: React.FC<ModalProps> = ({
                   wordWrap: "break-word",
                   textAlign: "left",
                   color: password ? "white" : "rgb(255, 255, 255, 0.6)",
-                  cursor: "copy",
+                  cursor: "text",
                 }}
               />
               <button
