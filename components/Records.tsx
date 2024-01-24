@@ -9,6 +9,7 @@ import Salt from "../components/Salt";
 import Loading from "../components/LoadingColors";
 import NameModal from "../components/Name";
 import ENSModal from "../components/ENS";
+import ErrorModal from "../components/Error";
 import { KEYGEN } from "../utils/keygen";
 import Web3 from "web3";
 import * as secp256k1 from "@noble/secp256k1";
@@ -39,6 +40,7 @@ const Records: React.FC<RecordsContainerProps> = ({
   const { address: _Wallet_ } = useAccount();
   const [helpModal, setHelpModal] = React.useState(false); // Help modal
   const [help, setHelp] = React.useState(""); // Set help
+  const [crash, setCrash] = React.useState(false); // Set crash status
   const [progress, setProgress] = React.useState(-1); // Sets index of record in process
   const [trigger, setTrigger] = React.useState(-1); // Stores trigger for side action
   const [message, setMessage] = React.useState("Loading"); // Set message to display
@@ -147,6 +149,54 @@ const Records: React.FC<RecordsContainerProps> = ({
     return index;
   }
 
+  // Function for writing IPNS meta to NameSys backend
+  async function writeMeta(index: number, type: string, updated: string) {
+    const request = {
+      ipns: inputValue[index].ipns,
+      ens: type === "ens" ? updated : "",
+      hidden: type === "hidden" ? updated : "",
+    };
+    try {
+      await fetch(`${constants.SERVER}:${constants.PORT}/meta`, {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      })
+        .then((response) => response.json())
+        .then(async (data) => {
+          if (data.response.status) {
+            if (type === "hidden") update(index, updated, "hidden");
+            if (type === "ens") update(index, updated, "ens");
+            setMessage("Meta Update Successful");
+            setTimeout(() => {
+              setLoading(false);
+            }, 2000);
+            handleSubmit;
+          } else {
+            console.error("ERROR:", "Failed to write meta to IPNS.eth backend");
+            setTimeout(() => {
+              setLoading(false);
+            }, 2000);
+            setLoading(false);
+            handleSubmit;
+            setMessage("Meta Update Failed");
+            setCrash(true);
+          }
+        });
+    } catch (error) {
+      console.error("ERROR:", "Failed to write meta to IPNS.eth backend");
+      setMessage("Meta Update Failed");
+      setTimeout(() => {
+        setLoading(false);
+      }, 2000);
+      handleSubmit;
+      setMessage("Meta Update Failed");
+      setCrash(true);
+    }
+  }
+
   // INIT
   React.useEffect(() => {
     if (isMobile || (width && width < 1300)) {
@@ -169,6 +219,16 @@ const Records: React.FC<RecordsContainerProps> = ({
             await update(i, Number(historical.data.timestamp[i]), "timestamp");
             await update(i, historical.data.revision[i], "revision");
             await update(i, historical.data.name[i], "name");
+            await update(
+              i,
+              historical.data.ens[i] === "0" ? "" : historical.data.ens[i],
+              "ens"
+            );
+            await update(
+              i,
+              String(historical.data.hidden[i]) === "1" ? true : false,
+              "hidden"
+            );
             await update(i, Number(historical.data.sequence[i]), "sequence");
           }
           await update(i, false, "loading.ipns");
@@ -220,7 +280,9 @@ const Records: React.FC<RecordsContainerProps> = ({
     if (ensModal === -1) {
       if (ensModalState.trigger && ensModalState.modalData) {
         const _update = async () => {
-          await update(progress, ensModalState.modalData, "ens");
+          setMessage("Updating IPNS Metadata");
+          setLoading(true);
+          await writeMeta(progress, "ens", ensModalState.modalData);
           setENSModal(-1);
           setENSModalState(constants.modalTemplate);
         };
@@ -235,7 +297,13 @@ const Records: React.FC<RecordsContainerProps> = ({
     if (deleteModal === -1) {
       if (deleteModalState.trigger && deleteModalState.modalData) {
         const _update = async () => {
-          await update(progress, deleteModalState.modalData, "hidden");
+          setLoading(true);
+          await writeMeta(
+            progress,
+            "hidden",
+            deleteModalState.modalData ? "1" : "0"
+          );
+          //await update(progress, deleteModalState.modalData, "hidden");
           setDeleteModal(-1);
           setDeleteModalState(constants.modalBoolTemplate);
         };
@@ -338,7 +406,20 @@ const Records: React.FC<RecordsContainerProps> = ({
   React.useEffect(() => {
     if (CID) {
       const _update = async () => {
-        await update(progress, `ipns://${CID}`, "ipns");
+        if (!inputValue[progress].ipns) {
+          await update(progress, `ipns://${CID}`, "ipns");
+        } else {
+          if (inputValue[progress].ipns === CID) {
+            await update(progress, `ipns://${CID}`, "ipns");
+          } else {
+            console.error("ERROR:", "Failed to write meta to IPNS.eth backend");
+            setMessage("Meta Update Failed");
+            setTimeout(() => {
+              setLoading(false);
+            }, 2000);
+            setCrash(true);
+          }
+        }
         await update(progress, false, "loading.ipns");
         setLoading(false);
         doFinish();
@@ -346,7 +427,7 @@ const Records: React.FC<RecordsContainerProps> = ({
       _update();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [CID, progress]);
+  }, [CID, progress, inputValue]);
 
   // Sets signature status
   React.useEffect(() => {
@@ -361,10 +442,16 @@ const Records: React.FC<RecordsContainerProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signLoading, signError, sigCount]);
 
+  // Handles return to index.tsx
   const handleSubmit = (e: { preventDefault: () => void }) => {
     handleModalData(JSON.stringify(inputValue));
     handleTrigger(true);
     e.preventDefault();
+  };
+  // Handles making more room
+  const handleExpand = (_inputValue: any) => {
+    const nextInput = constants.makeMoreRoom(_inputValue);
+    setInputValue(nextInput);
   };
 
   // Update values
@@ -540,7 +627,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                     {/* ENS */}
                     <button
                       className="button-tiny"
-                      disabled={!record.ens}
+                      disabled={!record.ipns}
                       data-tooltip={"Linked ENS"}
                       onClick={() => {
                         setENSModal(record.id);
@@ -637,7 +724,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                       hidden={
                         !constants.isGoodValue("contenthash", record.new) ||
                         constants.countVal(inputValue) > 1 ||
-                        !CID
+                        !record.authority
                       }
                       onClick={handleSubmit}
                       data-tooltip={"Write Record"}
@@ -800,7 +887,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                         id={`${record.id}-ipfs-copy`}
                         className={
                           constants.isGoodValue("contenthash", record.new) &&
-                          !CID
+                          !record.authority
                             ? "material-icons-round pulse"
                             : "material-icons-round"
                         }
@@ -849,7 +936,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                       >
                         {!record.loading.ipfs
                           ? constants.isGoodValue("contenthash", record.new) &&
-                            CID
+                            record.authority
                             ? "lock"
                             : record.ipfs && !record.new
                             ? "content_copy"
@@ -915,6 +1002,16 @@ const Records: React.FC<RecordsContainerProps> = ({
                     >
                       {""}
                     </DeleteModal>
+                    <ErrorModal
+                      onClose={() => {
+                        setCrash(false);
+                      }}
+                      color={"orangered"}
+                      show={crash && !loading}
+                      title={"cancel"}
+                    >
+                      {message}
+                    </ErrorModal>
                   </>
                 )}
               </div>
@@ -937,6 +1034,33 @@ const Records: React.FC<RecordsContainerProps> = ({
             {help}
           </Help>
         </div>
+      </div>
+      <div hidden={loading}>
+        <button
+          className="button flex-row"
+          style={{
+            alignSelf: "flex-end",
+            height: "30px",
+            width: "auto",
+            marginBottom: "6px",
+            marginTop: "25px",
+            background: "#4efc0339",
+          }}
+          disabled={records.length === 50}
+          hidden={records.length === 50}
+          onClick={() => handleExpand([...inputValue])}
+          data-tooltip={"Add More Keys"}
+        >
+          <div>{"Add More"}</div>
+          <div
+            className="material-icons-round smol"
+            style={{
+              color: "white",
+            }}
+          >
+            add
+          </div>
+        </button>
       </div>
     </div>
   );

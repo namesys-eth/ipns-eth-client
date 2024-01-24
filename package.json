@@ -10,7 +10,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "ghp-deploy": "touch out/.nojekyll && git add -f out && git commit -S -m 'auto-commit: gh-pages' && git subtree push --prefix out origin gh-pages"
+    "ghp-deploy": "touch out/.nojekyll && node postbuild/replacerGHP.js && git add -f out && git commit -S -m 'auto-commit: gh-pages' && git subtree push --prefix out origin gh-pages",
+    "xyz-deploy": "node postbuild/replacerXYZ.js",
+    "eth-deploy": "node postbuild/replacerETH.js"
   },
   "dependencies": {
     "@ensdomains/content-hash": "^3.1.0-rc.0",

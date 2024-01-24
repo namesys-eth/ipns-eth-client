@@ -12,6 +12,9 @@ import { Alchemy, Network } from "alchemy-sdk";
 import { ethers } from "ethers";
 import Web3 from "web3";
 
+export const PORT = process.env.NEXT_PUBLIC_PORT;
+export const SERVER = process.env.NEXT_PUBLIC_SERVER;
+
 export const modalBoolTemplate = {
   modalData: false,
   trigger: false,
@@ -233,6 +236,54 @@ export function makeRecords(_length: number) {
     records.push(record);
   }
   return records;
+}
+
+// Makes room for more records
+export function makeMoreRoom(current: any[]) {
+  const currentLength = current.length;
+  current.push(
+    {
+      id: currentLength,
+      name: "...",
+      ipns: "",
+      ipfs: "",
+      cid: {
+        v0: "",
+        v1: "",
+      },
+      sequence: 0,
+      loading: {
+        ipns: false,
+        ipfs: false,
+      },
+      ens: "",
+      new: "",
+      timestamp: 0,
+      block: false,
+      authority: "",
+    },
+    {
+      id: currentLength + 1,
+      name: "...",
+      ipns: "",
+      ipfs: "",
+      cid: {
+        v0: "",
+        v1: "",
+      },
+      sequence: 0,
+      loading: {
+        ipns: false,
+        ipfs: false,
+      },
+      ens: "",
+      new: "",
+      timestamp: 0,
+      block: false,
+      authority: "",
+    }
+  );
+  return current;
 }
 
 // Records History object with empty strings

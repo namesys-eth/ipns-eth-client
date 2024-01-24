@@ -144,7 +144,9 @@ const ENSModal: React.FC<ModalProps> = ({
             }}
             onClick={handleSubmit}
             data-tooltip="Confirm"
-            disabled={!constants.isDomain(inputValue)}
+            disabled={
+              !constants.isDomain(inputValue) || inputValue === children
+            }
           >
             <div
               className="flex-row"

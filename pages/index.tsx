@@ -9,7 +9,7 @@ import { isMobile } from "react-device-detect";
 import Loading from "../components/LoadingColors";
 import Records from "../components/Records";
 import Success from "../components/Success";
-import Error from "../components/Error";
+import ErrorModal from "../components/Error";
 import { useWindowDimensions } from "../hooks/useWindowDimensions";
 import { useAccount } from "wagmi";
 import * as secp256k1 from "@noble/secp256k1";
@@ -48,8 +48,7 @@ export default function Home() {
   const provider = new ethers.AlchemyProvider(network, apiKey);
   const alchemyEndpoint = `https://eth-${network}.g.alchemy.com/v2/` + apiKey;
 
-  const PORT = process.env.NEXT_PUBLIC_PORT;
-  const SERVER = process.env.NEXT_PUBLIC_SERVER;
+  
 
   // Handle Records body data return
   const handleRecordsData = (data: string) => {
@@ -101,7 +100,7 @@ export default function Home() {
       user: String(wallet),
     };
     try {
-      await fetch(`${SERVER}:${PORT}/read`, {
+      await fetch(`${constants.SERVER}:${constants.PORT}/read`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -172,7 +171,7 @@ export default function Home() {
       timestamp: timestamp,
     };
     try {
-      await fetch(`${SERVER}:${PORT}/revision`, {
+      await fetch(`${constants.SERVER}:${constants.PORT}/revision`, {
         method: "post",
         headers: {
           "Content-Type": "application/json",
@@ -188,7 +187,7 @@ export default function Home() {
           }
         });
     } catch (error) {
-      console.error("ERROR:", "Failed to write Revision to CCIP2 backend");
+      console.error("ERROR:", "Failed to write Revision to IPNS.eth backend");
       setMessage("Revision Update Failed");
       setCrash(true);
       setColor("orangered");
@@ -320,7 +319,7 @@ export default function Home() {
       const editRecord = async () => {
         setMessage("Writing IPNS Records");
         try {
-          await fetch(`${SERVER}:${PORT}/write`, {
+          await fetch(`${constants.SERVER}:${constants.PORT}/write`, {
             method: "post",
             headers: {
               "Content-Type": "application/json",
@@ -702,7 +701,7 @@ export default function Home() {
                       >
                         {success}
                       </Success>
-                      <Error
+                      <ErrorModal
                         onClose={() => {
                           setCrash(false);
                         }}
@@ -711,7 +710,7 @@ export default function Home() {
                         title={"cancel"}
                       >
                         {message}
-                      </Error>
+                      </ErrorModal>
                     </div>
                   </div>
                 </div>

@@ -10,7 +10,7 @@ interface ModalProps {
   children: any
 }
 
-const Error: React.FC<ModalProps> = ({ show, onClose, color, title, children }) => {
+const ErrorModal: React.FC<ModalProps> = ({ show, onClose, color, title, children }) => {
   const [browser, setBrowser] = React.useState(false)
 
   React.useEffect(() => {
@@ -108,4 +108,4 @@ const StyledModalOverlay = styled.div`
   background-color: rgba(0, 0, 0, 1);
 `
 
-export default Error
+export default ErrorModal
