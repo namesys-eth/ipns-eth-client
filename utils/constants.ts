@@ -201,6 +201,7 @@ export type RecordsType = [
     timestamp: number;
     block: boolean;
     authority: string;
+    hidden: boolean;
   }
 ];
 
@@ -227,11 +228,27 @@ export function makeRecords(_length: number) {
       timestamp: 0,
       block: false,
       authority: "",
+      hidden: false,
     };
     records.push(record);
   }
   return records;
 }
+
+// Records History object with empty strings
+export const EMPTY_HISTORY_RECORDS = {
+  type: "history",
+  data: {
+    ipns: [""],
+    ipfs: [""],
+    timestamp: [""],
+    revision: [""],
+    sequence: [""],
+    name: [""],
+    ens: [""],
+    hidden: [""],
+  },
+};
 
 // Returns formatted ed25519/IPNS keypair
 export function formatkey(keypair: [string, string]) {
@@ -259,8 +276,6 @@ export function isValue(id: string, value: string) {
     return false;
   }
 }
-
-
 
 // Truncate hex string
 export function truncateHexString(hexString: string) {
@@ -346,19 +361,6 @@ export function isContenthash(value: string) {
     (prefixOnion === "onion://" && onionRegex.test(value.substring(8))) // Check Onion v2 & v3
   );
 }
-
-// Records History object with empty strings
-export const EMPTY_HISTORY_RECORDS = {
-  type: "history",
-  data: {
-    ipns: [""],
-    ipfs: [""],
-    timestamp: [""],
-    revision: [""],
-    sequence: [""],
-    name: [""],
-  },
-};
 
 // Counts live values of update
 export function countVal(records: any) {

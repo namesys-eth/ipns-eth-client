@@ -214,14 +214,14 @@ export default function Home() {
         _history.data.ipfs[_index] = _records[key].ipfs.split("ipfs://")[1];
         _history.data.ipns[_index] = _records[key].ipns.split("ipns://")[1];
         _history.data.name[_index] = _records[key].name;
+        _history.data.ens[_index] = _records[key].ens;
+        _history.data.hidden[_index] = _records[key].hidden ? "1" : "0";
         _history.data.sequence[_index] = String(_records[key].sequence);
         _history.data.timestamp[_index] = String(_records[key].timestamp);
         // Update metadata locally
         _history.data.revision[_index] = encoded[_index];
       }
     }
-    console.log("Records:", _records);
-    console.log("History:", _history);
     setRecords(_records);
     setHistory(_history);
   }
@@ -288,6 +288,7 @@ export default function Home() {
       let newTimestamp: number[] = [];
       let newSequence: number[] = [];
       let newENS: string[] = [];
+      let newHidden: string[] = [];
       let newAuthority: string[] = [];
       let newRevision: Name.Revision[] = [];
       let newEncoded: any[] = [];
@@ -301,6 +302,7 @@ export default function Home() {
           newName.push(_records[key].name);
           newTimestamp.push(Math.round(Date.now() / 1000));
           newENS.push(_records[key].ens);
+          newHidden.push(_records[key].hidden ? "1" : "0");
           newSequence.push(_records[key].sequence + 1);
           newAuthority.push(_records[key].authority);
         }
@@ -313,6 +315,7 @@ export default function Home() {
         timestamp: newTimestamp,
         name: newName,
         ens: newENS,
+        hidden: newHidden,
       };
       const editRecord = async () => {
         setMessage("Writing IPNS Records");

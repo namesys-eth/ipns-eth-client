@@ -40,9 +40,9 @@ const Records: React.FC<RecordsContainerProps> = ({
   const [helpModal, setHelpModal] = React.useState(false); // Help modal
   const [help, setHelp] = React.useState(""); // Set help
   const [progress, setProgress] = React.useState(-1); // Sets index of record in process
+  const [trigger, setTrigger] = React.useState(-1); // Stores trigger for side action
   const [message, setMessage] = React.useState("Loading"); // Set message to display
   const [loading, setLoading] = React.useState(false); // Loading Records marker
-  const [editName, setEditName] = React.useState(-1); // Edit name of IPNS key
   const [saltModal, setSaltModal] = React.useState(-1); // Salt (password/key-identifier) modal
   const [sigCount, setSigCount] = React.useState(0); // Set signature count
   const [CID, setCID] = React.useState(""); // IPNS pubkey/CID value
@@ -52,9 +52,9 @@ const Records: React.FC<RecordsContainerProps> = ({
       : constants.makeRecords(historical.data.ipns.length)
   ); // Input state
   const [mobile, setMobile] = React.useState(false); // Mobioe device
-  const [nameModal, setNameModal] = React.useState(false); // Edit name modal
-  const [ensModal, setENSModal] = React.useState(false); // Edit ENS modal
-  const [deleteModal, setDeleteModal] = React.useState(false); // Delete IPNS modal
+  const [nameModal, setNameModal] = React.useState(-1); // Edit name modal
+  const [ensModal, setENSModal] = React.useState(-1); // Edit ENS modal
+  const [deleteModal, setDeleteModal] = React.useState(-1); // Delete IPNS modal
   const [keypair, setKeypair] = React.useState<[string, string]>(["", ""]); // Sets generated K_IPNS keys
   const [nameModalState, setNameModalState] =
     React.useState<constants.MainBodyState>(constants.modalTemplate); // Name modal state
@@ -147,21 +147,11 @@ const Records: React.FC<RecordsContainerProps> = ({
     return index;
   }
 
-  // Whether connector can manage
-  function canManage() {
-    return (
-      !_Wallet_ ||
-      (!meta.wrapped && _Wallet_ !== meta.owner) ||
-      (meta.wrapped && _Wallet_ !== meta.manager)
-    );
-  }
-
   // INIT
   React.useEffect(() => {
     if (isMobile || (width && width < 1300)) {
       setMobile(true);
     }
-    console.log(inputValue);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width, height, _Wallet_]);
 
@@ -191,29 +181,20 @@ const Records: React.FC<RecordsContainerProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historical]);
 
-  // Edit names of keys
-  React.useEffect(() => {
-    if (editName !== -1) setNameModal(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editName]);
-
   // Trigger Name modal update
   React.useEffect(() => {
-    if (editName !== -1) {
+    if (nameModal === -1) {
       if (nameModalState.trigger && nameModalState.modalData) {
         const _update = async () => {
-          await update(editName, nameModalState.modalData, "name");
-          setEditName(-1);
+          await update(nameModal, nameModalState.modalData, "name");
+          setNameModal(-1);
+          setNameModalState(constants.modalTemplate);
         };
         _update();
-      } else {
-        setNameModalState(constants.modalTemplate);
       }
-    } else {
-      setNameModalState(constants.modalTemplate);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nameModalState, editName]);
+  }, [nameModalState, nameModal, progress]);
 
   // Trigger name update from Salt modal
   React.useEffect(() => {
@@ -233,6 +214,36 @@ const Records: React.FC<RecordsContainerProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saltModalState, saltModal, progress]);
+
+  // Trigger ENS update from ENS modal
+  React.useEffect(() => {
+    if (ensModal === -1) {
+      if (ensModalState.trigger && ensModalState.modalData) {
+        const _update = async () => {
+          await update(progress, ensModalState.modalData, "ens");
+          setENSModal(-1);
+          setENSModalState(constants.modalTemplate);
+        };
+        _update();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ensModalState, ensModal, progress]);
+
+  // Trigger IPNS key deletion
+  React.useEffect(() => {
+    if (deleteModal === -1) {
+      if (deleteModalState.trigger && deleteModalState.modalData) {
+        const _update = async () => {
+          await update(progress, deleteModalState.modalData, "hidden");
+          setDeleteModal(-1);
+          setDeleteModalState(constants.modalBoolTemplate);
+        };
+        _update();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deleteModalState, deleteModal, progress]);
 
   // Signature S_IPNS statement; S_IPNS(K_WALLET) [IPNS Keygen]
   // S_IPNS is not recovered on-chain; no need for buffer prepend and hashing of message required to sign
@@ -380,6 +391,10 @@ const Records: React.FC<RecordsContainerProps> = ({
           updatedRecords[index] = { ...updatedRecords[index], sequence: value };
         } else if (type === "block") {
           updatedRecords[index] = { ...updatedRecords[index], block: value };
+        } else if (type === "ens") {
+          updatedRecords[index] = { ...updatedRecords[index], ens: value };
+        } else if (type === "hidden") {
+          updatedRecords[index] = { ...updatedRecords[index], hidden: value };
         } else if (type === "authority") {
           updatedRecords[index] = {
             ...updatedRecords[index],
@@ -490,6 +505,7 @@ const Records: React.FC<RecordsContainerProps> = ({
               style={{
                 marginTop: !mobile ? "0" : "10px",
               }}
+              hidden={record.hidden}
             >
               <div className="flex-sans-align">
                 <div
@@ -503,7 +519,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                     <div
                       onClick={() =>
                         !record.ipns
-                          ? setEditName(record.id)
+                          ? (setNameModal(record.id), setTrigger(record.id))
                           : update(record.id, true, "block")
                       }
                       style={{
@@ -524,13 +540,16 @@ const Records: React.FC<RecordsContainerProps> = ({
                     {/* ENS */}
                     <button
                       className="button-tiny"
-                      disabled={!getVal(record.id, "ens")}
+                      disabled={!record.ens}
                       data-tooltip={"Linked ENS"}
-                      onClick={() => setENSModal(true)}
+                      onClick={() => {
+                        setENSModal(record.id);
+                        setTrigger(record.id);
+                      }}
                     >
                       <div
                         style={{
-                          margin: "0 -5px -2px 10px",
+                          margin: "0 -5px -1px 10px",
                         }}
                       >
                         <img alt="ens" src="ens.png" width="15px" />
@@ -539,9 +558,12 @@ const Records: React.FC<RecordsContainerProps> = ({
                     {/* Delete */}
                     <button
                       className="button-tiny"
-                      disabled={!getVal(record.id, "ipns")}
+                      disabled={!record.ipns}
                       data-tooltip={"Delete IPNS Key"}
-                      onClick={() => setDeleteModal(true)}
+                      onClick={() => {
+                        setDeleteModal(record.id);
+                        setTrigger(record.id);
+                      }}
                     >
                       <div
                         style={{
@@ -563,24 +585,18 @@ const Records: React.FC<RecordsContainerProps> = ({
                     <button
                       className="button-tiny"
                       hidden={
-                        getVal(record.id, "ipfs") &&
-                        constants.isGoodValue(
-                          "contenthash",
-                          getVal(record.id, "ipfs")
-                        )
+                        record.new &&
+                        constants.isGoodValue("contenthash", record.new)
                           ? false
-                          : !getVal(record.id, "ipfs")
-                          ? true
-                          : false
+                          : !record.ipfs
+                          ? false
+                          : true
                       }
                       data-tooltip={
-                        getVal(record.id, "ipfs") &&
-                        constants.isGoodValue(
-                          "contenthash",
-                          getVal(record.id, "ipfs")
-                        )
+                        record.new &&
+                        constants.isGoodValue("contenthash", record.new)
                           ? "Legit Value"
-                          : !getVal(record.id, "ipfs")
+                          : !record.ipfs
                           ? ""
                           : "Bad Value"
                       }
@@ -589,23 +605,17 @@ const Records: React.FC<RecordsContainerProps> = ({
                         className="material-icons-round smol"
                         style={{
                           color:
-                            getVal(record.id, "ipfs") &&
-                            constants.isGoodValue(
-                              "contenthash",
-                              getVal(record.id, "ipfs")
-                            )
+                            record.ipfs &&
+                            constants.isGoodValue("contenthash", record.new)
                               ? "yellowgreen"
-                              : !getVal(record.id, "ipfs")
+                              : !record.ipfs
                               ? "transparent"
                               : "orangered",
                           margin: "0 0 0 3px",
                         }}
                       >
-                        {getVal(record.id, "ipfs") &&
-                        constants.isGoodValue(
-                          "contenthash",
-                          getVal(record.id, "ipfs")
-                        )
+                        {record.ipfs &&
+                        constants.isGoodValue("contenthash", record.new)
                           ? "check_circle_outline"
                           : "info_outline"}
                       </div>
@@ -622,16 +632,12 @@ const Records: React.FC<RecordsContainerProps> = ({
                         marginBottom: "6px",
                       }}
                       disabled={
-                        !constants.isGoodValue(
-                          "contenthash",
-                          getVal(record.id, "ipfs")
-                        )
+                        !constants.isGoodValue("contenthash", record.new)
                       }
                       hidden={
-                        !constants.isGoodValue(
-                          "contenthash",
-                          getVal(record.id, "ipfs")
-                        ) || constants.countVal(inputValue) > 1
+                        !constants.isGoodValue("contenthash", record.new) ||
+                        constants.countVal(inputValue) > 1 ||
+                        !CID
                       }
                       onClick={handleSubmit}
                       data-tooltip={"Write Record"}
@@ -663,9 +669,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                         placeholder={record.ipns || "generate IPNS key"}
                         contentEditable={false}
                         type="text"
-                        value={
-                          canManage() ? getVal(record.id, "ipns") : record.ipns
-                        }
+                        value={record.ipns}
                         onChange={(e) => {
                           update(record.id, e.target.value, "ipns");
                           update(record.id, true, "block");
@@ -686,14 +690,12 @@ const Records: React.FC<RecordsContainerProps> = ({
                           width: "400px",
                           wordWrap: "break-word",
                           textAlign: record.ipns ? "left" : "right",
-                          color:
-                            !record.ipns &&
-                            constants.isGoodValue(
-                              "contenthash",
-                              getVal(record.id, "ipns")
-                            )
-                              ? "lightgreen"
-                              : hue,
+                          color: constants.isGoodValue(
+                            "contenthash",
+                            record.ipns
+                          )
+                            ? "lightgreen"
+                            : "orange",
                           cursor: record.block ? "not-allowed" : "default",
                         }}
                       />
@@ -719,7 +721,10 @@ const Records: React.FC<RecordsContainerProps> = ({
                               ? "copy"
                               : "pointer"
                             : "wait",
-                          opacity: nameModal ? "0" : "1",
+                          opacity:
+                            nameModal >= 0 || saltModal >= 0 || ensModal >= 0
+                              ? "0"
+                              : "1",
                         }}
                         onClick={() => {
                           !record.loading.ipns
@@ -729,7 +734,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                                   `${record.id}-ipns-copy`,
                                   `${record.id}-ipns`
                                 )
-                              : setSaltModal(record.id)
+                              : (setSaltModal(record.id), setTrigger(record.id))
                             : "";
                         }}
                       >
@@ -750,9 +755,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                           (!record.ipns ? "IPFS hash" : "Enter IPFS Hash")
                         }
                         type="text"
-                        value={
-                          canManage() ? getVal(record.id, "ipfs") : record.ipfs
-                        }
+                        value={record.new}
                         onChange={(e) => {
                           update(record.id, e.target.value, "new");
                         }}
@@ -779,14 +782,14 @@ const Records: React.FC<RecordsContainerProps> = ({
                               : !record.ipns
                               ? "right"
                               : "left",
-                          color:
-                            !record.ipfs &&
-                            constants.isGoodValue(
-                              "contenthash",
-                              getVal(record.id, "ipfs")
-                            )
-                              ? "lightgreen"
-                              : hue,
+                          color: constants.isGoodValue(
+                            "contenthash",
+                            record.new
+                          )
+                            ? "lightgreen"
+                            : record.ipfs
+                            ? "orange"
+                            : "orangered",
                           cursor:
                             unauthorised() || !record.ipns
                               ? "not-allowed"
@@ -795,7 +798,12 @@ const Records: React.FC<RecordsContainerProps> = ({
                       />
                       <div
                         id={`${record.id}-ipfs-copy`}
-                        className="material-icons-round"
+                        className={
+                          constants.isGoodValue("contenthash", record.new) &&
+                          !CID
+                            ? "material-icons-round pulse"
+                            : "material-icons-round"
+                        }
                         style={{
                           fontSize: "22px",
                           fontWeight: "700",
@@ -813,32 +821,39 @@ const Records: React.FC<RecordsContainerProps> = ({
                               ? "copy"
                               : "default"
                             : "wait",
-                          opacity: nameModal
-                            ? "0"
-                            : !record.ipfs && !record.new
-                            ? record.ipns
+                          opacity:
+                            nameModal >= 0 || saltModal >= 0 || ensModal >= 0
+                              ? "0"
+                              : record.new
+                              ? !constants.isGoodValue(
+                                  "contenthash",
+                                  record.new
+                                )
+                                ? "0"
+                                : "1"
+                              : record.ipfs
                               ? "1"
-                              : "0.35"
-                            : "1",
+                              : "0.35",
                         }}
                         onClick={() =>
-                          record.ipfs
+                          !record.new
                             ? constants.copyToClipboard(
                                 `${record.ipfs || record.new}`,
                                 `${record.id}-ipfs-copy`,
                                 `${record.id}-ipfs`
                               )
-                            : ""
+                            : !constants.isGoodValue("contenthash", record.new)
+                            ? ""
+                            : (setTrigger(record.id), setSaltModal(record.id))
                         }
                       >
                         {!record.loading.ipfs
-                          ? record.ipfs
+                          ? constants.isGoodValue("contenthash", record.new) &&
+                            CID
+                            ? "lock"
+                            : record.ipfs && !record.new
                             ? "content_copy"
-                            : record.new
-                            ? "lock_open"
-                            : record.ipns
-                            ? "lock_open"
-                            : "lock"
+                            : "lock_open"
                           : "hourglass_top"}
                       </div>
                     </div>
@@ -846,45 +861,62 @@ const Records: React.FC<RecordsContainerProps> = ({
                 </div>
               </div>
               <div id="modal-2">
-                <NameModal
-                  onClose={() => setNameModal(false)}
-                  show={nameModal}
-                  children={
-                    editName !== -1 ? inputValue[editName].name : record.name
-                  }
-                  handleTrigger={handleNameTrigger}
-                  handleModalData={handleNameModalData}
-                />
-                <Salt
-                  handleTrigger={handleSaltTrigger}
-                  handleModalData={handleSaltModalData}
-                  onClose={() => {
-                    setProgress(saltModal);
-                    setSaltModal(-1);
-                  }}
-                  show={saltModal >= 0}
-                >
-                  {[
-                    saltModal >= 0 ? inputValue[saltModal].name : record.name,
-                    saltModal,
-                  ]}
-                </Salt>
-                <ENSModal
-                  onClose={() => setENSModal(false)}
-                  show={ensModal}
-                  handleTrigger={handleENSTrigger}
-                  handleModalData={handleENSModalData}
-                >
-                  {record.ens}
-                </ENSModal>
-                <DeleteModal
-                  onClose={() => setDeleteModal(false)}
-                  show={deleteModal}
-                  handleTrigger={handleDeleteTrigger}
-                  handleModalData={handleDeleteModalData}
-                >
-                  {record.ipns}
-                </DeleteModal>
+                {trigger === record.id && (
+                  <>
+                    <NameModal
+                      onClose={() => {
+                        setProgress(nameModal);
+                        setNameModal(-1);
+                      }}
+                      show={nameModal >= 0}
+                      children={
+                        nameModal >= 0
+                          ? inputValue[nameModal].name
+                          : record.name
+                      }
+                      handleTrigger={handleNameTrigger}
+                      handleModalData={handleNameModalData}
+                    />
+                    <Salt
+                      handleTrigger={handleSaltTrigger}
+                      handleModalData={handleSaltModalData}
+                      onClose={() => {
+                        setProgress(saltModal);
+                        setSaltModal(-1);
+                      }}
+                      show={saltModal >= 0}
+                    >
+                      {[
+                        saltModal >= 0
+                          ? inputValue[saltModal].name
+                          : record.name,
+                        saltModal,
+                      ]}
+                    </Salt>
+                    <ENSModal
+                      onClose={() => {
+                        setProgress(ensModal);
+                        setENSModal(-1);
+                      }}
+                      show={ensModal >= 0}
+                      handleTrigger={handleENSTrigger}
+                      handleModalData={handleENSModalData}
+                    >
+                      {record.ens}
+                    </ENSModal>
+                    <DeleteModal
+                      onClose={() => {
+                        setProgress(deleteModal);
+                        setDeleteModal(-1);
+                      }}
+                      show={deleteModal >= 0}
+                      handleTrigger={handleDeleteTrigger}
+                      handleModalData={handleDeleteModalData}
+                    >
+                      {""}
+                    </DeleteModal>
+                  </>
+                )}
               </div>
             </div>
           ))}
