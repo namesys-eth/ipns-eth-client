@@ -1,7 +1,6 @@
 import Head from "next/head";
 import React from "react";
 import styles from "./page.module.css";
-import "./index.css";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ethers } from "ethers";
 import * as constants from "../utils/constants";
@@ -15,7 +14,6 @@ import { useAccount } from "wagmi";
 import * as secp256k1 from "@noble/secp256k1";
 import * as Name from "w3name";
 import * as Nam3 from "@namesys-eth/w3name-client";
-import "./index.css";
 
 export default function Home() {
   const { width, height } = useWindowDimensions(); // Get window dimensions
@@ -47,8 +45,6 @@ export default function Home() {
   const network = chain === "1" ? "mainnet" : "goerli";
   const provider = new ethers.AlchemyProvider(network, apiKey);
   const alchemyEndpoint = `https://eth-${network}.g.alchemy.com/v2/` + apiKey;
-
-  
 
   // Handle Records body data return
   const handleRecordsData = (data: string) => {
@@ -133,6 +129,46 @@ export default function Home() {
     }
   }
 
+  // Function for resetting IPNS key on NameSys backend
+  async function doClean(ipns: string[]) {
+    const request = {
+      ipns: ipns,
+    };
+    try {
+      await fetch(`${constants.SERVER}:${constants.PORT}/clean`, {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      })
+        .then((response) => response.json())
+        .then(async (data) => {
+          if (data.response.status) {
+            setMessage("Meta Reset Successful");
+            setTimeout(() => {
+              setLoading(false);
+            }, 2000);
+          } else {
+            console.error("ERROR:", "Failed to reset meta on IPNS.eth backend");
+            setTimeout(() => {
+              setLoading(false);
+            }, 2000);
+            setLoading(false);
+            setMessage("Meta Reset Failed");
+            setCrash(true);
+          }
+        });
+    } catch (error) {
+      console.error("ERROR:", "Failed to reset meta on IPNS.eth backend");
+      setMessage("Meta Reset Failed");
+      setTimeout(() => {
+        setLoading(false);
+      }, 2000);
+      setCrash(true);
+    }
+  }
+
   // Function for writing IPNS Revision metadata to NameSys backend; needed for updates
   async function writeRevision(
     revision: Name.Revision[],
@@ -196,11 +232,9 @@ export default function Home() {
   }
 
   // Finish updating records
-  function doSuccess(ipns: string[], encoded: any[], timestamp: number[]) {
+  function doSuccess(ipns: string[], timestamp: number[], _records: any) {
     setLoading(false);
     setWrite(false);
-    let _records = { ...records };
-    let _history = { ...history };
     for (const key in _records) {
       if (_records[key].new) {
         let _index = ipns.indexOf(_records[key].ipns);
@@ -209,20 +243,10 @@ export default function Home() {
         _records[key].sequence = _records[key].sequence + 1;
         _records[key].new = "";
         _records[key].timestamp = timestamp[_index];
-        // Update history locally without remote fetch
-        _history.data.ipfs[_index] = _records[key].ipfs.split("ipfs://")[1];
-        _history.data.ipns[_index] = _records[key].ipns.split("ipns://")[1];
-        _history.data.name[_index] = _records[key].name;
-        _history.data.ens[_index] = _records[key].ens;
-        _history.data.hidden[_index] = _records[key].hidden ? "1" : "0";
-        _history.data.sequence[_index] = String(_records[key].sequence);
-        _history.data.timestamp[_index] = String(_records[key].timestamp);
-        // Update metadata locally
-        _history.data.revision[_index] = encoded[_index];
       }
     }
     setRecords(_records);
-    setHistory(_history);
+    getUpdate(String(_Wallet_));
   }
 
   // Finish crashing and resetting
@@ -273,6 +297,20 @@ export default function Home() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recordsState]);
+
+  // Trigger page refresh upon success
+  React.useEffect(() => {
+    if (successModalState.trigger && successModalState.modalData) {
+      setSuccessModalState(constants.modalSuccessTemplate);
+      setMessage("Refreshing Records");
+      setLoading(true);
+      setTimeout(() => {
+        setLoading(false);
+      }, 2000);
+      //window.location.reload();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [successModalState]);
 
   /* HANDLE WRITING RECORDS */
   // Handles writing records to the NameSys backend
@@ -349,11 +387,7 @@ export default function Home() {
                     if (_index >= 0) {
                       let _revision_ = Revision.decode(
                         new Uint8Array(
-                          Object.values(
-                            JSON.parse(
-                              JSON.stringify(history.data.revision[_index])
-                            )
-                          )
+                          history.data.revision[_index].split(",").map(Number)
                         )
                       );
                       _revision = await Name.increment(_revision_, toPublish);
@@ -365,6 +399,12 @@ export default function Home() {
                     await Name.publish(_revision, w3name.key);
                     //await Nam3.publish(revision_, w3nam3.key);
                     // [!!!] _revision === revision_
+                    // [!!!] DO NOT REMOVE LOG
+                    console.log(
+                      "State:",
+                      JSON.stringify(Revision.encode(_revision)) ===
+                        JSON.stringify(Revision.encode(revision_))
+                    );
                     if (
                       JSON.stringify(Revision.encode(_revision)) ===
                       JSON.stringify(Revision.encode(revision_))
@@ -378,6 +418,7 @@ export default function Home() {
                       setSuccessModal(true);
                     } else {
                       allSuccess = false;
+                      await doClean(newIPNS);
                       setMessage("Failed Update due to Metadata Divergence");
                       setCrash(true);
                       setColor("orangered");
@@ -396,6 +437,7 @@ export default function Home() {
                     doSuccess(newIPNS, newEncoded, newTimestamp);
                   }
                 } else {
+                  await doClean(newIPNS);
                   setMessage("Failed to Update IPNS Records");
                   setCrash(true);
                   setColor("orangered");
@@ -405,6 +447,7 @@ export default function Home() {
             });
         } catch (error) {
           console.error("ERROR:", "Failed to write to IPNS.eth backend");
+          await doClean(newIPNS);
           setMessage("IPNS Record Update Failed");
           setCrash(true);
           setColor("orangered");
@@ -453,12 +496,12 @@ export default function Home() {
                 margin: mobile ? "60px 0 60px 0" : "90px 0 120px 0",
               }}
             >
-              <ConnectButton label="Login &nbsp;&nbsp;&nbsp;&nbsp;" />
+              <ConnectButton label="Login" />
               <div
                 className="material-icons-round"
                 style={{
                   color: "white",
-                  margin: "-7px 0 0 -30px",
+                  margin: "-7px 5px 0 -5px",
                 }}
               >
                 <span style={{ fontSize: "20px" }}>cabin</span>
@@ -466,7 +509,7 @@ export default function Home() {
             </div>
             <div className={styles.grid} style={{ marginTop: "50px" }}>
               <a
-                href=""
+                href="https://github.com/namesys-eth/ipns-eth-resources/blob/main/docs/README.md"
                 className={styles.card}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -479,7 +522,7 @@ export default function Home() {
               </a>
 
               <a
-                href=""
+                href="https://github.com/namesys-eth/ipns-eth-client"
                 className={styles.card}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -553,7 +596,7 @@ export default function Home() {
                     marginLeft: mobile ? "60%" : "90%",
                   }}
                 >
-                  <div style={{ width: "350px" }}>
+                  <div style={{ minWidth: "400px" }}>
                     <ConnectButton label="wallet" />
                   </div>
                 </div>
@@ -618,7 +661,7 @@ export default function Home() {
                         }
                         style={{
                           margin: !mobile
-                            ? `-14.55% 0 0 ${meta.ens ? "-33%" : "-10%"}`
+                            ? `-14.55% 0 0 ${meta.ens ? "-30%" : "-7%"}`
                             : "0 0 0 -5%",
                           color: "#ff2600",
                         }}
@@ -680,6 +723,9 @@ export default function Home() {
                     className={
                       !mobile ? "flex-column-sans-align" : "flex-column"
                     }
+                    style={{
+                      marginTop: "-20px",
+                    }}
                   >
                     <div>
                       <Records
@@ -687,7 +733,6 @@ export default function Home() {
                         handleModalData={handleRecordsData}
                         handleTrigger={handleRecordsTrigger}
                         records={Object.values(records)}
-                        hue={!_Wallet_ ? "white" : "orange"}
                         historical={history}
                         longQueue={queue}
                       />
@@ -718,10 +763,10 @@ export default function Home() {
                   className={
                     !mobile ? `${styles.grid} flex-column` : `flex-column`
                   }
-                  style={{ margin: !mobile ? "180px 0 0 0" : "20px 0 0 0" }}
+                  style={{ margin: !mobile ? "30px 0 0 0" : "20px 0 0 0" }}
                 >
                   <a
-                    href=""
+                    href="https://github.com/namesys-eth/ipns-eth-resources/blob/main/docs/README.md"
                     className={styles.card}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -737,7 +782,7 @@ export default function Home() {
                   </a>
 
                   <a
-                    href=""
+                    href="https://github.com/namesys-eth/ipns-eth-client"
                     className={styles.card}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -777,6 +822,36 @@ export default function Home() {
                   >
                     {"ENS DAO"}
                   </span>
+                  <div
+                    style={{
+                      marginTop: !mobile ? "15px" : "10px",
+                      color: "#ff2600b3",
+                      fontFamily: "SF Mono",
+                      fontSize: !mobile ? "15px" : "14px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "Spotnik",
+                        fontSize: !mobile ? "10px" : "9px",
+                        fontWeight: "700",
+                        marginRight: "2px",
+                      }}
+                    >
+                      {"v"}
+                    </span>
+                    {"1.0"}
+                    <span
+                      style={{
+                        fontFamily: "Spotnik",
+                        fontSize: !mobile ? "13px" : "12px",
+                        fontWeight: "700",
+                        marginLeft: "2px",
+                      }}
+                    >
+                      {"-beta"}
+                    </span>
+                  </div>
                 </div>
                 <div id="none" style={{ marginTop: "2.5%" }}></div>
               </div>

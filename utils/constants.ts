@@ -114,7 +114,7 @@ export const defaultGateway =
   network === "goerli"
     ? "https://ccip.namesys.xyz/5"
     : "https://ccip.namesys.xyz";
-export const waitingPeriod = 1 * (network === "goerli" ? 1 : 60) * 60; // 60 mins
+export const waitingPeriod = 60 * 60; // 60 mins
 export const ensContracts = [
   "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e", // Legacy Registry (Goerli & Mainnet)
   "0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85", // Legacy Registrar (Goerli & Mainnet)
@@ -261,6 +261,7 @@ export function makeMoreRoom(current: any[]) {
       timestamp: 0,
       block: false,
       authority: "",
+      hidden: false,
     },
     {
       id: currentLength + 1,
@@ -281,6 +282,7 @@ export function makeMoreRoom(current: any[]) {
       timestamp: 0,
       block: false,
       authority: "",
+      hidden: false,
     }
   );
   return current;
@@ -294,10 +296,10 @@ export const EMPTY_HISTORY_RECORDS = {
     ipfs: [""],
     timestamp: [""],
     revision: [""],
-    sequence: [""],
+    sequence: [0],
     name: [""],
     ens: [""],
-    hidden: [""],
+    hidden: [0],
   },
 };
 
@@ -308,7 +310,7 @@ export function formatkey(keypair: [string, string]) {
 
 // Checks if value is good for a field
 export function isGoodValue(id: string, value: string) {
-  if (value !== null) {
+  if (value !== null && value !== undefined) {
     return (
       (id === "contenthash" && isContenthash(value)) ||
       (id === "addr" && isAddr(value)) ||
@@ -413,7 +415,7 @@ export function isContenthash(value: string) {
   );
 }
 
-// Counts live values of update
+// Counts live values during editing
 export function countVal(records: any) {
   let nonEmptyNewCount = 0;
   for (const key in records) {
@@ -425,4 +427,49 @@ export function countVal(records: any) {
     }
   }
   return nonEmptyNewCount;
+}
+
+// Counts visible values in current records
+export function countVisibleInRecords(records: any) {
+  let visibleCount = 0;
+  for (const key in records) {
+    if (
+      records.hasOwnProperty(key) &&
+      !records[key].hidden &&
+      records[key].ipns
+    ) {
+      visibleCount++;
+    }
+  }
+  return visibleCount;
+}
+
+// Counts legit values in history
+export function countLegitInHistory(
+  ipns: string[],
+  hidden: number[],
+  revision: string[]
+) {
+  let visibleCount = 0;
+  for (let i = 0; i < ipns.length; i++) {
+    if (hidden[i] === 0 && revision[i] !== "0x0") {
+      visibleCount++;
+    }
+  }
+  return visibleCount;
+}
+
+// Counts hidden values in history
+export function countHiddenInHistory(
+  ipns: string[],
+  hidden: number[],
+  revision: string[]
+) {
+  let visibleCount = 0;
+  for (let i = 0; i < ipns.length; i++) {
+    if ((hidden[i] === 1 || revision[i] === "0x0") && ipns[i]) {
+      visibleCount++;
+    }
+  }
+  return visibleCount;
 }

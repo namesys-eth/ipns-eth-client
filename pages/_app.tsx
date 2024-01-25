@@ -96,13 +96,13 @@ const { chains, publicClient } = configureChains(
 
 const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || "";
 const { connectors } = getDefaultWallets({
-  appName: "NameSysLite",
+  appName: "IPNS-by-NameSys",
   projectId,
   chains,
 });
 
 const appInfo = {
-  appName: "NameSys Lite Client",
+  appName: "IPNS.eth by NameSys",
 };
 
 const wagmiConfig = createConfig({

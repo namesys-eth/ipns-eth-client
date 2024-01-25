@@ -13,7 +13,7 @@ interface ModalProps {
   handleTrigger: (data: boolean) => void;
 }
 
-const ENSModal: React.FC<ModalProps> = ({
+const EnsModal: React.FC<ModalProps> = ({
   show,
   onClose,
   children,
@@ -255,4 +255,4 @@ const StyledModalOverlay = styled.div`
   background-color: rgba(0, 0, 0, 1);
 `;
 
-export default ENSModal;
+export default EnsModal;

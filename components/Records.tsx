@@ -8,7 +8,7 @@ import Help from "../components/Help";
 import Salt from "../components/Salt";
 import Loading from "../components/LoadingColors";
 import NameModal from "../components/Name";
-import ENSModal from "../components/ENS";
+import EnsModal from "../components/ENS";
 import ErrorModal from "../components/Error";
 import { KEYGEN } from "../utils/keygen";
 import Web3 from "web3";
@@ -21,7 +21,6 @@ import DeleteModal from "./Delete";
 interface RecordsContainerProps {
   meta: any;
   records: any[];
-  hue: string;
   longQueue: number[];
   historical: typeof constants.EMPTY_HISTORY_RECORDS;
   handleModalData: (data: string) => void;
@@ -31,36 +30,46 @@ interface RecordsContainerProps {
 const Records: React.FC<RecordsContainerProps> = ({
   meta,
   records,
-  hue,
   longQueue,
   historical,
   handleModalData,
   handleTrigger,
 }) => {
+  const _Length = constants.countLegitInHistory(
+    historical.data.ipns,
+    historical.data.hidden,
+    historical.data.revision
+  );
+  const _Hidden = constants.countHiddenInHistory(
+    historical.data.ipns,
+    historical.data.hidden,
+    historical.data.revision
+  );
   const { address: _Wallet_ } = useAccount();
   const [helpModal, setHelpModal] = React.useState(false); // Help modal
   const [help, setHelp] = React.useState(""); // Set help
   const [crash, setCrash] = React.useState(false); // Set crash status
   const [progress, setProgress] = React.useState(-1); // Sets index of record in process
   const [trigger, setTrigger] = React.useState(-1); // Stores trigger for side action
+  const [skip, setSkip] = React.useState(-1); // Skips meta update to backend
   const [message, setMessage] = React.useState("Loading"); // Set message to display
   const [loading, setLoading] = React.useState(false); // Loading Records marker
   const [saltModal, setSaltModal] = React.useState(-1); // Salt (password/key-identifier) modal
   const [sigCount, setSigCount] = React.useState(0); // Set signature count
   const [CID, setCID] = React.useState(""); // IPNS pubkey/CID value
   const [inputValue, setInputValue] = React.useState(
-    historical.data.ipns.length < 5
-      ? records
-      : constants.makeRecords(historical.data.ipns.length)
+    _Length < 5
+      ? constants.makeRecords(4 + _Hidden)
+      : constants.makeRecords(_Length)
   ); // Input state
   const [mobile, setMobile] = React.useState(false); // Mobioe device
   const [nameModal, setNameModal] = React.useState(-1); // Edit name modal
-  const [ensModal, setENSModal] = React.useState(-1); // Edit ENS modal
+  const [ensModal, setEnsModal] = React.useState(-1); // Edit ENS modal
   const [deleteModal, setDeleteModal] = React.useState(-1); // Delete IPNS modal
   const [keypair, setKeypair] = React.useState<[string, string]>(["", ""]); // Sets generated K_IPNS keys
   const [nameModalState, setNameModalState] =
     React.useState<constants.MainBodyState>(constants.modalTemplate); // Name modal state
-  const [ensModalState, setENSModalState] =
+  const [ensModalState, setEnsModalState] =
     React.useState<constants.MainBodyState>(constants.modalTemplate); // ENS modal state
   const [deleteModalState, setDeleteModalState] =
     React.useState<constants.MainBoolState>(constants.modalBoolTemplate); // ENS modal state
@@ -90,12 +99,12 @@ const Records: React.FC<RecordsContainerProps> = ({
     setNameModalState((prevState) => ({ ...prevState, trigger: trigger }));
   };
   // Handle ENS modal data return
-  const handleENSModalData = (data: string) => {
-    setENSModalState((prevState) => ({ ...prevState, modalData: data }));
+  const handleEnsModalData = (data: string) => {
+    setEnsModalState((prevState) => ({ ...prevState, modalData: data }));
   };
   // Handle ENS modal trigger
-  const handleENSTrigger = (trigger: boolean) => {
-    setENSModalState((prevState) => ({ ...prevState, trigger: trigger }));
+  const handleEnsTrigger = (trigger: boolean) => {
+    setEnsModalState((prevState) => ({ ...prevState, trigger: trigger }));
   };
   // Handle Delete modal data return
   const handleDeleteModalData = (data: boolean) => {
@@ -152,9 +161,9 @@ const Records: React.FC<RecordsContainerProps> = ({
   // Function for writing IPNS meta to NameSys backend
   async function writeMeta(index: number, type: string, updated: string) {
     const request = {
-      ipns: inputValue[index].ipns,
-      ens: type === "ens" ? updated : "",
-      hidden: type === "hidden" ? updated : "",
+      ipns: [inputValue[index].ipns],
+      ens: type === "ens" ? [updated] : [""],
+      hidden: type === "hidden" ? [updated] : [""],
     };
     try {
       await fetch(`${constants.SERVER}:${constants.PORT}/meta`, {
@@ -192,7 +201,6 @@ const Records: React.FC<RecordsContainerProps> = ({
         setLoading(false);
       }, 2000);
       handleSubmit;
-      setMessage("Meta Update Failed");
       setCrash(true);
     }
   }
@@ -283,8 +291,8 @@ const Records: React.FC<RecordsContainerProps> = ({
           setMessage("Updating IPNS Metadata");
           setLoading(true);
           await writeMeta(progress, "ens", ensModalState.modalData);
-          setENSModal(-1);
-          setENSModalState(constants.modalTemplate);
+          setEnsModal(-1);
+          setEnsModalState(constants.modalTemplate);
         };
         _update();
       }
@@ -296,6 +304,7 @@ const Records: React.FC<RecordsContainerProps> = ({
   React.useEffect(() => {
     if (deleteModal === -1) {
       if (deleteModalState.trigger && deleteModalState.modalData) {
+        setMessage("Deleting IPNS Key");
         const _update = async () => {
           setLoading(true);
           await writeMeta(
@@ -412,12 +421,17 @@ const Records: React.FC<RecordsContainerProps> = ({
           if (inputValue[progress].ipns === CID) {
             await update(progress, `ipns://${CID}`, "ipns");
           } else {
-            console.error("ERROR:", "Failed to write meta to IPNS.eth backend");
-            setMessage("Meta Update Failed");
-            setTimeout(() => {
-              setLoading(false);
-            }, 2000);
-            setCrash(true);
+            if (skip !== progress) {
+              console.error(
+                "ERROR:",
+                "Failed to write meta to IPNS.eth backend"
+              );
+              setMessage("Meta Update Failed");
+              setTimeout(() => {
+                setLoading(false);
+              }, 2000);
+              setCrash(true);
+            }
           }
         }
         await update(progress, false, "loading.ipns");
@@ -553,7 +567,7 @@ const Records: React.FC<RecordsContainerProps> = ({
             </div>
             <div
               style={{
-                marginTop: "-20px",
+                marginTop: "-65px",
               }}
             >
               <span
@@ -569,6 +583,7 @@ const Records: React.FC<RecordsContainerProps> = ({
             <div
               style={{
                 marginTop: "20px",
+                paddingBottom: "30px",
               }}
             >
               <span
@@ -592,7 +607,7 @@ const Records: React.FC<RecordsContainerProps> = ({
               style={{
                 marginTop: !mobile ? "0" : "10px",
               }}
-              hidden={record.hidden}
+              hidden={record.hidden || record.revision === "0x0"}
             >
               <div className="flex-sans-align">
                 <div
@@ -605,7 +620,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                     {/* Name */}
                     <div
                       onClick={() =>
-                        !record.ipns
+                        !record.ipns && record.ipns // [!!!]
                           ? (setNameModal(record.id), setTrigger(record.id))
                           : update(record.id, true, "block")
                       }
@@ -624,13 +639,40 @@ const Records: React.FC<RecordsContainerProps> = ({
                         {record.name}
                       </h4>
                     </div>
+                    {/* Active */}
+                    <button
+                      className="button-tiny"
+                      disabled={longQueue[record.id] > 0}
+                      data-tooltip={
+                        longQueue[record.id] < 0
+                          ? "Please Wait"
+                          : "Ready For Next Update"
+                      }
+                    >
+                      <div
+                        style={{
+                          marginLeft: "5px",
+                        }}
+                      >
+                        <div
+                          className="material-icons-round smol"
+                          style={{
+                            color:
+                              longQueue[record.id] < 0 ? "orangered" : "lime",
+                            fontSize: "18px",
+                          }}
+                        >
+                          {longQueue[record.id] < 0 ? "alarm" : "alarm"}
+                        </div>
+                      </div>
+                    </button>
                     {/* ENS */}
                     <button
                       className="button-tiny"
                       disabled={!record.ipns}
                       data-tooltip={"Linked ENS"}
                       onClick={() => {
-                        setENSModal(record.id);
+                        setEnsModal(record.id);
                         setTrigger(record.id);
                       }}
                     >
@@ -654,7 +696,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                     >
                       <div
                         style={{
-                          marginLeft: "5px",
+                          marginLeft: "10px",
                         }}
                       >
                         <div
@@ -687,6 +729,9 @@ const Records: React.FC<RecordsContainerProps> = ({
                           ? ""
                           : "Bad Value"
                       }
+                      style={{
+                        margin: "0 0 -1px 5px",
+                      }}
                     >
                       <div
                         className="material-icons-round smol"
@@ -694,11 +739,10 @@ const Records: React.FC<RecordsContainerProps> = ({
                           color:
                             record.ipfs &&
                             constants.isGoodValue("contenthash", record.new)
-                              ? "yellowgreen"
+                              ? "lime"
                               : !record.ipfs
                               ? "transparent"
                               : "orangered",
-                          margin: "0 0 0 3px",
                         }}
                       >
                         {record.ipfs &&
@@ -821,7 +865,9 @@ const Records: React.FC<RecordsContainerProps> = ({
                                   `${record.id}-ipns-copy`,
                                   `${record.id}-ipns`
                                 )
-                              : (setSaltModal(record.id), setTrigger(record.id))
+                              : (setSaltModal(record.id),
+                                setTrigger(record.id),
+                                setSkip(record.id))
                             : "";
                         }}
                       >
@@ -846,7 +892,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                         onChange={(e) => {
                           update(record.id, e.target.value, "new");
                         }}
-                        disabled={unauthorised() || !record.ipns}
+                        disabled={unauthorised() || !record.ipns || longQueue[record.id] < 0}
                         style={{
                           background: "#082400",
                           outline: "none",
@@ -878,7 +924,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                             ? "orange"
                             : "orangered",
                           cursor:
-                            unauthorised() || !record.ipns
+                            unauthorised() || !record.ipns || longQueue[record.id] < 0
                               ? "not-allowed"
                               : "text",
                         }}
@@ -900,6 +946,9 @@ const Records: React.FC<RecordsContainerProps> = ({
                               : "0 0 0 -25px",
                           color: !record.loading.ipfs
                             ? record.ipfs
+                              ? "lightgreen"
+                              : record.new &&
+                                constants.isGoodValue("contenthash", record.new)
                               ? "lightgreen"
                               : "white"
                             : "white",
@@ -931,7 +980,9 @@ const Records: React.FC<RecordsContainerProps> = ({
                               )
                             : !constants.isGoodValue("contenthash", record.new)
                             ? ""
-                            : (setTrigger(record.id), setSaltModal(record.id))
+                            : (setSaltModal(record.id),
+                              setTrigger(record.id),
+                              setSkip(record.id))
                         }
                       >
                         {!record.loading.ipfs
@@ -956,14 +1007,14 @@ const Records: React.FC<RecordsContainerProps> = ({
                         setNameModal(-1);
                       }}
                       show={nameModal >= 0}
-                      children={
-                        nameModal >= 0
-                          ? inputValue[nameModal].name
-                          : record.name
-                      }
+                      history={inputValue.map((key) => key["name"])}
                       handleTrigger={handleNameTrigger}
                       handleModalData={handleNameModalData}
-                    />
+                    >
+                      {nameModal >= 0
+                        ? inputValue[nameModal].name
+                        : record.name}
+                    </NameModal>
                     <Salt
                       handleTrigger={handleSaltTrigger}
                       handleModalData={handleSaltModalData}
@@ -978,19 +1029,20 @@ const Records: React.FC<RecordsContainerProps> = ({
                           ? inputValue[saltModal].name
                           : record.name,
                         saltModal,
+                        inputValue.map((key) => key["name"]),
                       ]}
                     </Salt>
-                    <ENSModal
+                    <EnsModal
                       onClose={() => {
                         setProgress(ensModal);
-                        setENSModal(-1);
+                        setEnsModal(-1);
                       }}
                       show={ensModal >= 0}
-                      handleTrigger={handleENSTrigger}
-                      handleModalData={handleENSModalData}
+                      handleTrigger={handleEnsTrigger}
+                      handleModalData={handleEnsModalData}
                     >
                       {record.ens}
-                    </ENSModal>
+                    </EnsModal>
                     <DeleteModal
                       onClose={() => {
                         setProgress(deleteModal);
@@ -1042,7 +1094,7 @@ const Records: React.FC<RecordsContainerProps> = ({
             alignSelf: "flex-end",
             height: "30px",
             width: "auto",
-            marginBottom: "6px",
+            marginBottom: "25px",
             marginTop: "25px",
             background: "#4efc0339",
           }}

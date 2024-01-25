@@ -9,6 +9,7 @@ interface ModalProps {
   show: boolean;
   onClose: any;
   children: string;
+  history: string[];
   handleModalData: (data: string) => void;
   handleTrigger: (data: boolean) => void;
 }
@@ -17,6 +18,7 @@ const NameModal: React.FC<ModalProps> = ({
   show,
   onClose,
   children,
+  history,
   handleModalData,
   handleTrigger,
 }) => {
@@ -129,9 +131,13 @@ const NameModal: React.FC<ModalProps> = ({
               width: "100%",
               wordWrap: "break-word",
               textAlign: "left",
-              color: C.isName(inputValue)
-                ? "lightgreen"
-                : "rgb(255, 255, 255, 1)",
+              color:
+                C.isName(inputValue) &&
+                history
+                  .filter((element: string) => element !== children)
+                  .includes(inputValue)
+                  ? "lightgreen"
+                  : "rgb(255, 255, 255, 1)",
               cursor: "copy",
             }}
           />
@@ -145,7 +151,12 @@ const NameModal: React.FC<ModalProps> = ({
             }}
             onClick={handleSubmit}
             data-tooltip="Confirm"
-            disabled={!C.isName(inputValue)}
+            disabled={
+              !C.isName(inputValue) &&
+              !history
+                .filter((element: string) => element !== children)
+                .includes(inputValue)
+            }
           >
             <div
               className="flex-row"

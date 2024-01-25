@@ -8,7 +8,7 @@ import { useWindowDimensions } from "../hooks/useWindowDimensions";
 interface ModalProps {
   show: boolean;
   onClose: any;
-  children: string[];
+  children: [string, number, string[]];
   handleModalData: (data: string) => void;
   handleTrigger: (data: boolean) => void;
 }
@@ -152,7 +152,9 @@ const Salt: React.FC<ModalProps> = ({
                   wordWrap: "break-word",
                   textAlign: "left",
                   color:
-                    username.length > 2 ? "lime" : "rgb(255, 255, 255, 0.6)",
+                    username.length > 2 && !children[2].includes(username)
+                      ? "lime"
+                      : "rgb(255, 255, 255, 0.6)",
                   cursor: "text",
                   marginBottom: "10px",
                 }}
@@ -252,7 +254,13 @@ const Salt: React.FC<ModalProps> = ({
               fontWeight: "700",
             }}
             onClick={handleSubmit}
-            disabled={username.length < 3 || username === "..."}
+            disabled={
+              username.length < 3 ||
+              username === "..." ||
+              children[2]
+                .filter((element: string) => element !== children[0])
+                .includes(username)
+            }
             data-tooltip="Click to proceed"
           >
             <div
