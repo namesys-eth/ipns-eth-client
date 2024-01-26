@@ -1,6 +1,6 @@
 {
-  "name": "NameSys - Keyless IPNS Pinning Service",
-  "short_name": "IPNS by NameSys",
+  "name": "NameSys IPNS Pinning Service",
+  "short_name": "IPNS.eth",
   "display": "standalone",
   "orientation": "landscape",
   "purpose": "any maskable",
@@ -9,12 +9,12 @@
   "start_url": "/",
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "images/favicon.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/logo.png",
+      "src": "images/favicon.png",
       "sizes": "512x512",
       "type": "image/png"
     }
