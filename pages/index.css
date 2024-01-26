@@ -1701,14 +1701,14 @@ button:not(:disabled),
   100% {
     opacity: 1;
     filter: brightness(1.5);
-    transform: scale(2);
+    transform: scale(1.7);
   }
 
   25%,
   75% {
     opacity: 0.95;
     filter: brightness(1.25);
-    transform: scale(1.75);
+    transform: scale(1.6);
   }
 
   50% {

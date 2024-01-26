@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import styles from "../pages/page.module.css";
 import { isMobile } from "react-device-detect";
 import { useWindowDimensions } from "../hooks/useWindowDimensions";
@@ -60,7 +61,7 @@ const Records: React.FC<RecordsContainerProps> = ({
   const [inputValue, setInputValue] = React.useState(
     _Length < 5
       ? constants.makeRecords(4 + _Hidden)
-      : constants.makeRecords(_Length)
+      : constants.makeRecords(_Length + _Hidden)
   ); // Input state
   const [mobile, setMobile] = React.useState(false); // Mobioe device
   const [nameModal, setNameModal] = React.useState(-1); // Edit name modal
@@ -418,7 +419,7 @@ const Records: React.FC<RecordsContainerProps> = ({
         if (!inputValue[progress].ipns) {
           await update(progress, `ipns://${CID}`, "ipns");
         } else {
-          if (inputValue[progress].ipns === CID) {
+          if (inputValue[progress].ipns.split("ipns://")[1] === CID) {
             await update(progress, `ipns://${CID}`, "ipns");
           } else {
             if (skip !== progress) {
@@ -431,6 +432,14 @@ const Records: React.FC<RecordsContainerProps> = ({
                 setLoading(false);
               }, 2000);
               setCrash(true);
+            } else {
+              console.error("ERROR:", "Bad Password");
+              setMessage("Seems Like Bad Password");
+              setTimeout(() => {
+                setLoading(false);
+              }, 2000);
+              setCrash(true);
+              await update(progress, ``, "authority");
             }
           }
         }
@@ -441,7 +450,7 @@ const Records: React.FC<RecordsContainerProps> = ({
       _update();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [CID, progress, inputValue]);
+  }, [CID, progress, inputValue, skip]);
 
   // Sets signature status
   React.useEffect(() => {
@@ -557,7 +566,7 @@ const Records: React.FC<RecordsContainerProps> = ({
             <div
               style={{
                 padding: "100px 200px",
-                margin: "-250px 0 0 100%",
+                margin: "-240px 0 0 100%",
                 background: "black",
                 height: "200%",
                 width: "200%",
@@ -639,19 +648,87 @@ const Records: React.FC<RecordsContainerProps> = ({
                         {record.name}
                       </h4>
                     </div>
-                    {/* Active */}
+                    {/* Export/Import Key */}
                     <button
                       className="button-tiny"
-                      disabled={longQueue[record.id] > 0}
-                      data-tooltip={
-                        longQueue[record.id] < 0
-                          ? "Please Wait One Hour"
-                          : "Ready For Next Update"
-                      }
+                      data-tooltip={record.ipns ? "Export Key" : "Import Key"}
+                      onClick={() => {
+                        record.ipns
+                          ? (setHelp("Export Feature Coming Soon"), setHelpModal(true))
+                          : (setHelp("Import Feature Coming Soon"), setHelpModal(true));
+                      }}
                     >
                       <div
                         style={{
                           marginLeft: "5px",
+                        }}
+                      >
+                        <div
+                          className="material-icons-round smol"
+                          style={{
+                            color: !record.ipns ? "grey" : "grey",
+                            fontSize: "18px",
+                          }}
+                        >
+                          {record.ipns ? "vpn_key" : "key"}
+                        </div>
+                      </div>
+                    </button>
+                    {/* Gateway */}
+                    <button
+                      className="button-tiny"
+                      data-tooltip={record.ipns ? "Visit Gateway" : ""}
+                      onClick={() => {
+                        record.ipns
+                          ? window.open(
+                              `https://${
+                                record.ipns
+                                  ? record.ipns.split("ipns://")[1]
+                                  : "0"
+                              }.ipfs2.eth.limo`,
+                              "_blank",
+                              "noopener,noreferrer"
+                            )
+                          : "";
+                      }}
+                      disabled={!record.ipns}
+                    >
+                      <div
+                        style={{
+                          marginLeft: "5px",
+                        }}
+                      >
+                        <div
+                          className="material-icons-round smol"
+                          style={{
+                            color: !record.ipns ? "grey" : "lime",
+                            fontSize: "18px",
+                          }}
+                        >
+                          {record.ipns ? "rss_feed" : "rss_feed"}
+                        </div>
+                      </div>
+                    </button>
+                    {/* Active */}
+                    <button
+                      className="button-tiny"
+                      data-tooltip={
+                        longQueue[record.id] < 0
+                          ? "In Waiting Period"
+                          : "Ready For Update"
+                      }
+                      onClick={() => {
+                        longQueue[record.id] < 0
+                          ? setHelp(
+                              "Record updates must be separated by half hour. Please wait <span></span>"
+                            )
+                          : setHelp("Ready For Next Update");
+                        setHelpModal(true);
+                      }}
+                    >
+                      <div
+                        style={{
+                          marginLeft: "3px",
                         }}
                       >
                         <div
@@ -732,7 +809,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                           : "Bad Value"
                       }
                       style={{
-                        margin: "0 0 -1px 5px",
+                        margin: "0 0 -1px 4px",
                       }}
                     >
                       <div

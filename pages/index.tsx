@@ -501,12 +501,12 @@ export default function Home() {
                 margin: mobile ? "60px 0 60px 0" : "90px 0 120px 0",
               }}
             >
-              <ConnectButton label="Login" />
+              <ConnectButton label="Login &nbsp;&nbsp;&nbsp;&nbsp;" />
               <div
                 className="material-icons-round"
                 style={{
                   color: "white",
-                  margin: "-7px 5px 0 -5px",
+                  margin: "-7px 5px 0 -30px",
                 }}
               >
                 <span style={{ fontSize: "20px" }}>cabin</span>
