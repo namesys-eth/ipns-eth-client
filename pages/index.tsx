@@ -91,7 +91,7 @@ export default function Home() {
 
   // Get records from history on backend
   // Must get Revision for IPNS update
-  async function getUpdate(wallet: string) {
+  async function getUpdate(wallet: string, useQueue: boolean) {
     const request = {
       user: String(wallet),
     };
@@ -111,7 +111,7 @@ export default function Home() {
           };
           setHistory(_history);
           let _queue = [];
-          for (let i = 0; i < records.length; i++) {
+          for (let i = 0; i < _history.data.ipns.length; i++) {
             if (data.response.data.timestamp[i]) {
               _queue.push(
                 Math.round(Date.now() / 1000) -
@@ -122,7 +122,8 @@ export default function Home() {
               _queue.push(0);
             }
           }
-          setQueue(_queue);
+          console.log(_queue)
+          if (useQueue) setQueue(_queue);
         });
     } catch (error) {
       console.error("ERROR:", "Failed to read from IPNS.eth backend");
@@ -232,9 +233,10 @@ export default function Home() {
   }
 
   // Finish updating records
-  function doSuccess(ipns: string[], timestamp: number[], _records: any) {
+  function doSuccess(ipns: string[], timestamp: number[], _records: typeof records) {
     setLoading(false);
     setWrite(false);
+    let _queue = [...queue];
     for (const key in _records) {
       if (_records[key].new) {
         let _index = ipns.indexOf(_records[key].ipns);
@@ -243,10 +245,12 @@ export default function Home() {
         _records[key].sequence = _records[key].sequence + 1;
         _records[key].new = "";
         _records[key].timestamp = timestamp[_index];
+        _queue[Number(key)] = -constants.waitingPeriod;
       }
     }
+    setQueue(_queue);
     setRecords(_records);
-    getUpdate(String(_Wallet_));
+    getUpdate(String(_Wallet_), false);
   }
 
   // Finish crashing and resetting
@@ -267,7 +271,7 @@ export default function Home() {
     if (isMobile || (width && width < 1300)) {
       setMobile(true);
     }
-    getUpdate(String(_Wallet_));
+    getUpdate(String(_Wallet_), true);
     setTimeout(() => {
       setLoading(false);
     }, 2000);
@@ -434,7 +438,7 @@ export default function Home() {
                       newName,
                       newSequence
                     );
-                    doSuccess(newIPNS, newEncoded, newTimestamp);
+                    doSuccess(newIPNS, newTimestamp, records);
                   }
                 } else {
                   await doClean(newIPNS);
