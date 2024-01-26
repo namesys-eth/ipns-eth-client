@@ -122,7 +122,6 @@ export default function Home() {
               _queue.push(0);
             }
           }
-          console.log(_queue)
           if (useQueue) setQueue(_queue);
         });
     } catch (error) {
@@ -233,10 +232,14 @@ export default function Home() {
   }
 
   // Finish updating records
-  function doSuccess(ipns: string[], timestamp: number[], _records: typeof records) {
+  function doSuccess(
+    ipns: string[],
+    timestamp: number[],
+    _records: typeof records,
+    _history: typeof history
+  ) {
     setLoading(false);
     setWrite(false);
-    let _queue = [...queue];
     for (const key in _records) {
       if (_records[key].new) {
         let _index = ipns.indexOf(_records[key].ipns);
@@ -245,12 +248,10 @@ export default function Home() {
         _records[key].sequence = _records[key].sequence + 1;
         _records[key].new = "";
         _records[key].timestamp = timestamp[_index];
-        _queue[Number(key)] = -constants.waitingPeriod;
       }
     }
-    setQueue(_queue);
     setRecords(_records);
-    getUpdate(String(_Wallet_), false);
+    getUpdate(String(_Wallet_), true);
   }
 
   // Finish crashing and resetting
@@ -438,7 +439,7 @@ export default function Home() {
                       newName,
                       newSequence
                     );
-                    doSuccess(newIPNS, newTimestamp, records);
+                    doSuccess(newIPNS, newTimestamp, records, history);
                   }
                 } else {
                   await doClean(newIPNS);

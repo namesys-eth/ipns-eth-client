@@ -567,7 +567,7 @@ const Records: React.FC<RecordsContainerProps> = ({
             </div>
             <div
               style={{
-                marginTop: "-65px",
+                marginTop: sigCount > 0 ? "-65px" : "-40px",
               }}
             >
               <span
@@ -645,7 +645,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                       disabled={longQueue[record.id] > 0}
                       data-tooltip={
                         longQueue[record.id] < 0
-                          ? "Please Wait"
+                          ? "Please Wait One Hour"
                           : "Ready For Next Update"
                       }
                     >
@@ -674,6 +674,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                       onClick={() => {
                         setEnsModal(record.id);
                         setTrigger(record.id);
+                        setSigCount(0);
                       }}
                     >
                       <div
@@ -692,6 +693,7 @@ const Records: React.FC<RecordsContainerProps> = ({
                       onClick={() => {
                         setDeleteModal(record.id);
                         setTrigger(record.id);
+                        setSigCount(0);
                       }}
                     >
                       <div
@@ -892,7 +894,11 @@ const Records: React.FC<RecordsContainerProps> = ({
                         onChange={(e) => {
                           update(record.id, e.target.value, "new");
                         }}
-                        disabled={unauthorised() || !record.ipns || longQueue[record.id] < 0}
+                        disabled={
+                          unauthorised() ||
+                          !record.ipns ||
+                          longQueue[record.id] < 0
+                        }
                         style={{
                           background: "#082400",
                           outline: "none",
@@ -924,7 +930,9 @@ const Records: React.FC<RecordsContainerProps> = ({
                             ? "orange"
                             : "orangered",
                           cursor:
-                            unauthorised() || !record.ipns || longQueue[record.id] < 0
+                            unauthorised() ||
+                            !record.ipns ||
+                            longQueue[record.id] < 0
                               ? "not-allowed"
                               : "text",
                         }}
