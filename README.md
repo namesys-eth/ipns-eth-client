@@ -1,6 +1,6 @@
-# CCIP2 `LITE` Client
+# `IPNS.eth` Client
 
-**LITE** Client for CCIP2 ENS Records Manager
+Keyless Pinning Service by NameSys
 
 # Notes
 

@@ -607,7 +607,7 @@ export default function Home() {
                 </div>
                 <div
                   className="flex-column"
-                  style={{ opacity: 0.35, marginTop: !mobile ? "-2%" : "10%" }}
+                  style={{ opacity: 1, marginTop: !mobile ? "-2%" : "10%" }}
                 >
                   <img
                     alt="logo"
